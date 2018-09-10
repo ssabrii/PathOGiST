@@ -1,0 +1,216 @@
+\documentclass[a4paper,UKenglish]{lipics-v2016}
+%This is a template for producing LIPIcs articles. 
+%See lipics-manual.pdf for further information.
+%for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+%for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+% for section-numbered lemmas etc., use "numberwithinsect"
+ 
+\usepackage{microtype}%if unwanted, comment out or use option "draft"
+
+%\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
+
+\bibliographystyle{plainurl}% the recommended bibstyle
+
+% Author macros::begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Consensus Clustering}
+% \titlerunning{A Sample LIPIcs Article} %optional, in case that the title is too long; the running title should fit into the top page column
+
+%% Please provide for each author the \author and \affil macro, even when authors have the same affiliation, i.e. for each author there needs to be the  \author and \affil macros
+\author[1]{Pedro Feijao}
+\author[2]{Sean La}
+\affil[1]{SFU
+  \texttt{pfeijao@sfu.ca}}
+\affil[2]{SFU
+  \texttt{laseanl@sfu.ca}}\\
+  % \texttt{access@dummycollege.org}}
+% \authorrunning{J.\,Q. Open and J.\,R. Access} %mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et. al.'
+\authorrunning{P.\,Feijao} %mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et. al.'
+
+% \Copyright{John Q. Open and Joan R. Access}%mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+% \Copyright{Pedro Feijao}%mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+\def\copyrightline{}
+\DOIPrefix{}
+% \keywords{Dummy keyword -- please provide 1--5 keywords}% mandatory: Please provide 1-5 keywords
+% Author macros::end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\clustering}{\emph{clustering} }
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Consensus clustering is a special case of Correlation clustering. Here, we show how we can use consensus clustering to combine clusterings from SNP, MLST and CNV data, dealing with the fact that the input clusterings might be at different granularities or obtained with different thresholds.
+\end{abstract}
+
+\section{Background}
+
+\subsection{Correlation clustering}
+
+Given a distance matrix $D$ of the input elements, $d_{ij}$ representing the distance between element $i$ and $j$, we define
+$s_{ij} = T - d_{ij}$, where $T$ is a \emph{distance threshold}, intuitively meaning that if $s_{ij}>0$, 
+$i$ and $j$ are close and should possibly be in the same cluster, while $s_{ij}<0$ means $i$ and $j$ should be separate.
+
+The \emph{minimum correlation clustering problem} aims to find a clustering
+that minimizes the sum of all positive $s_{ij}$ for $i,j$ in different
+clusters (penalty for separating good pairs) minus the sum of all negative
+$s_{ij}$ if $i,j$ are in the same cluster (penalty for joining bad pairs).
+
+Defining binary variables $x_{ij}$ such that $x_{ij} = 0$ if $i$ and $j$ are
+in the same cluster and $x_{ij} = 1$ otherwise, the minimum correlation
+clustering objective function can be written as
+\[
+f(x) = \sum_{s_{ij} > 0} s_{ij} x_{ij} - \sum_{s_{ij} <0} s_{ij}(1-x_{ij})  = \sum s_{ij} x_{ij} - \sum_{s_{ij} <0} s_{ij}
+\]
+and it is possible to find an optimal clustering with the following integer linear program:
+\begin{equation}
+\underset{x}{\textnormal{minimize}} \quad \sum s_{ij} x_{ij}  
+\label{obj_correlation_simple}
+\end{equation}
+\vspace{-0.8cm}
+\begin{align*}
+\text{s.t.} \qquad & x_{ik} \leq x_{ij} + x_{jk}  \quad \text{for all }i,j,k  \\
+& x_{ij} \in \{0,1\}  \quad \text{for all }i,j 
+\end{align*}
+
+\subsection{Consensus Clustering}
+
+Given a set of clusterings and a measure of distance between clusterings, the
+\emph{consensus clustering problem} aims to find a  clustering minimizing the total
+distance to all input clusterings. A simple distance between two clusterings
+$\pi_1$ and $\pi_2$  is the number of elements clustered differently in
+$\pi_1$ and $\pi_2$, that is, the number of pairs of elements co-clustered  in
+$\pi_1$ but not co-clustered in $\pi_2$, plus the number of elements  co-clustered 
+in $\pi_2$ but not co-clustered in $\pi_1$.
+
+If a clustering $\pi$ is represented by a set with all the pairs that are co-clustered, this distance 
+can be defined as the symmetric different between two clustering sets:
+\begin{equation}
+	d(\pi_1,\pi_2) = | \pi_1 - \pi_2 | + | \pi_2 - \pi_1 | 
+\end{equation}
+
+% Given $n$ clusterings $\pi_1,\dots,\pi_n$, it is possible to build a matrix $s_ij$ such that the solution
+% of the corresponding minimum correlation clustering problem is the consensus clustering solution.
+
+The distance can also be defined as an objective function to be minimized, using the binary variables defined 
+above ($x_{ij} = 0$ means $i,j$ are co-clustered, otherwise they are not), as follows:
+
+\begin{equation}
+\label{eq:sum_d}
+d(x,\pi) = \sum_{\pi_{ij} = 1} (1 - x_{ij}) + \sum_{\pi_{ij} = 0} x_{ij}
+\end{equation}
+
+or, more generally, with weights $w_{ij}$ between each pair of elements $i$ and $j$:
+
+\begin{equation}
+\label{eq:w_dist}
+d(x,\pi) = \sum_{\pi_{ij} = 1} w_{ij} (1 - x_{ij}) + \sum_{\pi_{ij} = 0} w_{ij} x_{ij}
+\end{equation}
+
+and this can be written as 
+
+\begin{equation}
+d(x,\pi) = \sum s_{ij} x_{ij} + \sum_{x_{ij}=1} w_{ij}
+\end{equation}
+where $s_{ij} = (-1)^{\pi_{ij}}w_{ij}$. Notice the connection with the minimum correlation clustering problem. Therefore, 
+solving the minimum consensus problem for a given set of clusterings $\pi^{(1)},\dots, \pi^{(n)}$ is equivalent to solving 
+a minimum correlation clustering problem with the matrix $S$ defined as 
+
+\begin{equation}
+	\label{eq:s_definition}
+s_{ij} = \sum_{\{k | \pi^{(k)}_{ij} = 0 \}} w^{(k)}_{ij} - \sum_{\{k | \pi^{(k)}_{ij} = 1 \}} w^{(k)}_{ij} = \sum_{k=1}^n (-1)^{\pi^{(k)}_{ij}}w^{(k)}_{ij} 
+\end{equation}
+
+
+\subsection{Consensus clustering with different granularities}
+
+In this setting, we assume that the input clusterings are on different granularities. To avoid penalizing the differences between a finer clustering $\pi_1$ and
+a coarser clustering $\pi_2$, we introduce the following non symmetric distance:
+ \begin{equation}
+ 	d(\pi_1,\pi_2) = | \pi_1 - \pi_2 | 
+\end{equation}
+and Eq~\eqref{eq:sum_d} can be updated to 
+ \begin{equation}
+	\label{eq:sum_asymm}
+	d(x,\pi) = \sum_{\pi_{ij} = 0} x_{ij}
+ \end{equation}
+that is, removing the penalty for pairs that are co-clustered in $\pi$ but not in $x$.
+
+Then, given the clusterings $\pi_1, \dots, \pi_n$ and a subset $F$ of these
+clusterings, representing the clusterings with finest resolution, the 
+\emph{finest consensus clustering} problem is to find a clustering $x$ that
+minimizes the total distance between $x$ and all input clusterings, where 
+% \begin{equation}
+% 	d(x,\pi) = \begin{cases} \sum_{\pi_{ij} = 1} (1 - x_{ij}) + \sum_{\pi_{ij} = 0} x_{ij}, & \text{if } \pi \notin F\\
+% 	\sum_{\pi_{ij} = 0} x_{ij}, & \text{if }  \pi \in F
+% 	\end{cases}
+% \end{equation}
+
+\begin{equation} \label{eq:d_assym}
+d(x,\pi) = \begin{cases}  \sum_{\pi_{ij} = 1} w_{ij}(1 - x_{ij}) + \sum_{\pi_{ij} = 0}w_{ij} x_{ij},& \text{if } \pi \in F\\
+    \sum_{\pi_{ij} = 0}w_{ij} x_{ij}, & \text{otherwise}
+\end{cases}
+\end{equation}
+
+Then, to solve this problem using the minimum correlation clustering again, we can define the matrix $S$ as
+\begin{equation}
+	\label{eq:s_assym}
+s_{ij} = \sum_{\{k | \pi^{(k)}_{ij} = 0 \}} w^{(k)}_{ij} - \sum_{\{k | \pi^{(k)}_{ij} = 1, \pi^{(k)} \in F\}} w^{(k)}_{ij}
+\end{equation}
+
+
+\subsection{Selecting appropriate weights for the consensus clustering problem}
+
+There might be many meaningful ways of defining the weights $w_{ij}^{(k)}$
+used on the previous equations. 
+If we assume that a clustering $\pi$ was inferred based on a distance matrix
+$D$,  normalized such that  $0 \leq d_{ij} \leq 1$, we can define $w_{ij}$ as 
+
+\begin{equation} \label{eq:weights}
+w_{ij} = \begin{cases}  d_{ij},& \text{if } \pi_{ij}=1\\
+    				  1-d_{ij}, & \text{otherwise}
+\end{cases}
+\end{equation}
+
+The reasoning behind this definition is that if $\pi_{ij}=1$ ($i,j$ are not co-clustered in $\pi$), then 
+the distance $d_{ij}$ should be large, therefore it is a good penalty for co-clustering $i,j$ in $x$. On the 
+other hand, if  $\pi_{ij}=0$, $d_{ij}$ is small, which means that $1-d_{ij}$ is a better candidate for the penalty
+of choosing $x_{ij}=1$. Therefore, the distance between two clusterings, given on Eq.~\eqref{eq:w_dist},
+ can be updated to 
+
+\begin{equation}
+\label{eq:w_dist2}
+d(x,\pi) = \sum_{\pi_{ij} = 1} d_{ij} (1 - x_{ij}) + \sum_{\pi_{ij} = 0} (1-d_{ij}) x_{ij}
+\end{equation}
+
+and Eq.~\eqref{eq:s_definition} is now
+\begin{equation}
+	\label{eq:s_definition_with_d}
+s_{ij} = \sum_{\{k | \pi^{(k)}_{ij} = 0 \}} \left(1-d^{(k)}_{ij}\right) - \sum_{\{k | \pi^{(k)}_{ij} = 1 \}} d^{(k)}_{ij} = \Pi_{ij} - D_{ij}
+\end{equation}
+
+where $\Pi_{ij} = | \{k | \pi^{(k)}_{ij} = 0 \} |$ and $D = \sum_{k=1}^n d_{ij}^{(k)}$.
+
+\subsection{Weighted consensus clustering with different granularities}
+In the situation where the clusterings in consideration have different granularities, we may set the weights to that of (\ref{eq:weights}) so that (\ref{eq:d_assym}) becomes
+\begin{equation}
+d(x,\pi) = \begin{cases}  \sum_{\pi_{ij} = 1} d_{ij}(1 - x_{ij}) + \sum_{\pi_{ij} = 0}(1-d_{ij}) x_{ij},& \text{if } \pi \in F\\
+    \sum_{\pi_{ij} = 0}(1-d_{ij}) x_{ij}, & \text{otherwise}
+\end{cases}
+\end{equation}
+and (\ref{eq:s_assym}) is now given by
+\begin{equation} \label{eq:s_assym}
+s_{ij} = \sum_{\{k | \pi^{(k)}_{ij} = 0 \}} \left( 1-d^{(k)}_{ij} \right) - \sum_{\{k | \pi^{(k)}_{ij} = 1, \pi^{(k)} \in F\}} d^{(k)}_{ij} = \Pi_{ij} - D'_{ij}
+\end{equation}
+where 
+$$
+D'_{ij} = \sum_{ \{k \mid \pi_{ij}^{(k)} = 0 \}} d_{ij}^{(k)} + \sum_{ \{k \mid \pi_{ij}^{(k)} \pi_{ij}^{(k)} = 1,\ \pi^{(k)} \in F \} } d_{ij}^{(k)}
+$$
+and $\Pi_{ij} = |\{ k \mid \pi_{ij}^{(k)} = 0 \}|$, as before. 
+% \bibliography{lipics-v2016-sample-article}
+
+%% .. or use the thebibliography environment explicitely
+
+
+
+\end{document}

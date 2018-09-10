@@ -1,0 +1,33 @@
+---
+# PathOGiST configuration file.
+# This configuration file is in YAML file format, release 1.2 (Third Edition).
+# Google yaml for the specification.
+# Do not remove the sections 'genotyping', 'distances', 'thresholds', 'all_constraints', or 'output'.
+# Remove all key-value pairs in the sections 'genotyping' or 'distances' if you want them blank.
+# Remove all list items in the section 'fine_clusterings' if you want that blank, too.
+# Keys from 'genotyping' and 'distances' sections should not overlap.
+genotyping: 
+    # Raw genotyping data from which to create distance matrices.
+    # Accepted values are paths to text files containing paths to genotyping files.
+    # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
+    MLST: /home/seanla/runs/6-pathogist-run_all-test/yersinia_mentalist_calls.txt
+distances:
+    # Paths to pre-constructed distance matrices in tsv format.
+    # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
+    # but then they shouldn't appear in the section 'genotyping'.
+    SNP: /home/seanla/runs/6-pathogist-run_all-test/yersinia_snp_dist.tsv   
+    kWIP: /home/seanla/runs/6-pathogist-run_all-test/yersinia_kwip_dist.tsv
+fine_clusterings:
+    # The genotyping datatypes that are considered to be the "finest".
+    - SNP
+thresholds:
+    # Threshold values for performing correlation clustering on genotyping data types given above.
+    # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
+    SNP: 2500 
+    MLST: 300
+    kWIP: 0.4
+# Put the path for the final consensus clustering in tsv format here.
+output: /home/seanla/runs/6-pathogist-run_all-test/yersinia_final_clustering.tsv
+# Use all constraints when performing correlation and consensus clustering
+all_constraints: False
+...

@@ -1,0 +1,39 @@
+---
+# PathOGiST configuration file.
+# This configuration file is in YAML file format, release 1.2 (Third Edition).
+# Google yaml for the specification.
+# Do not remove the sections 'genotyping', 'distances', 'thresholds', 'all_constraints', or 'output'.
+# Remove all key-value pairs in the sections 'genotyping' or 'distances' if you want them blank.
+# Remove all list items in the section 'fine_clusterings' if you want that blank, too.
+# Keys from 'genotyping' and 'distances' sections should not overlap.
+genotyping: 
+    # Raw genotyping data from which to create distance matrices.
+    # Accepted values are paths to text files containing paths to genotyping files.
+    # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
+    SNP:
+    MLST:
+    CNV:
+distances:
+    # Paths to pre-constructed distance matrices in tsv format.
+    # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
+    # but then they shouldn't appear in the section 'genotyping'.
+    kWIP:
+    spoligotyping:
+fine_clusterings:
+    # The genotyping datatypes that are considered to be the "finest".
+    - MLST
+    - SNP
+    - kWIP
+thresholds:
+    # Threshold values for performing correlation clustering on genotyping data types given above.
+    # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
+    SNP: 
+    MLST:
+    CNV: 
+    kWIP:
+    spoligotyping:
+# Put the path for the final consensus clustering in tsv format here.
+output:
+# Use all constraints when performing correlation and consensus clustering
+all_constraints: False
+...

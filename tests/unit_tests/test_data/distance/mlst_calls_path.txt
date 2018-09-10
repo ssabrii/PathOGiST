@@ -1,0 +1,4 @@
+test_data/distance/mlst_calls/ERR024893.class
+test_data/distance/mlst_calls/ERR1414071.class
+test_data/distance/mlst_calls/ERR1413976.class
+test_data/distance/mlst_calls/SRR1922797.class

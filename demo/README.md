@@ -1,0 +1,1 @@
+This folder contains demonstrations of how you can use PathOGiST as both a Python 3 package you can import into your own custom scripts, or in a data processing pipeline using the main program `pathogist.py`.
