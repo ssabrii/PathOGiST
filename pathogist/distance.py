@@ -5,7 +5,7 @@ import numpy
 import pandas
 import pathogist.suffix_array
 import pathogist.suffix_array_AlgorithmicAlley
-import pysais
+#import pysais
 import time
 
 logger = logging.getLogger(__name__)
