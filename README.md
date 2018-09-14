@@ -5,11 +5,13 @@
   - [ ] Create complete set of unit test scripts for majority of functions
   - [ ] Add a continuous integration suite (such as [Travis CI](https://travis-ci.org/))
 - [ ] Distribution
-  - [ ] Create [Conda](https://conda.io) package
+  - [x] Create [Conda](https://conda.io) package
   - [ ] Create [pip](https://pip.pypa.io/en/stable/) package
-- [ ] Layering up
-  - [ ] Add a license (e.g. MIT)
+  - [ ] Create Galaxy version
+- [ ] Lawyering up
+  - [x] Add a license (e.g. MIT)
   - [ ] In each package file, add a header with copyright information
+- [ ] Documentation
   
 ## Dependencies
 - [`python3`](https://python.org)
