@@ -10,13 +10,13 @@ genotyping:
     # Raw genotyping data from which to create distance matrices.
     # Accepted values are paths to text files containing paths to genotyping files.
     # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
-    MLST: /home/seanla/runs/6-pathogist-run_all-test/yersinia_mentalist_calls.txt
+    MLST: test_data/yersinia_mentalist_calls.txt
 distances:
     # Paths to pre-constructed distance matrices in tsv format.
     # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
     # but then they shouldn't appear in the section 'genotyping'.
-    SNP: /home/seanla/runs/6-pathogist-run_all-test/yersinia_snp_dist.tsv   
-    kWIP: /home/seanla/runs/6-pathogist-run_all-test/yersinia_kwip_dist.tsv
+    SNP: test_data/yersinia_snp_dist.tsv   
+    kWIP: test_data/yersinia_kwip_dist.tsv
 fine_clusterings:
     # The genotyping datatypes that are considered to be the "finest".
     - SNP
