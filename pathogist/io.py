@@ -28,7 +28,7 @@ def read_mlst_calls(calls_path):
     calls = {}
     with open(calls_path,'r') as calls_file:
         for line in calls_file:
-            call_path = line.rstrip()
+            call_path = line.rstrip().split('=')[0]
             with open(call_path,'r') as call_file:
                 # Skip the header
                 call_file.readline()
@@ -55,8 +55,8 @@ def read_snp_calls(calls_path):
         with open(calls_path,'r') as calls_file:
             for line in calls_file:
                 # We assume that each line of the calls_file is in the form
-                # sample_name=call_path
-                sample_name,call_path = line.rstrip().split('=')
+                # call_path=sample_name
+                call_path,sample_name = line.rstrip().split('=')
                 '''
                 call_path = line.rstrip()
                 sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
@@ -138,7 +138,7 @@ def read_cnv_calls(calls_path):
     calls = {}
     with open(calls_path,'r') as calls_file:
         for line in calls_file:
-            call_path = line.rstrip()
+            call_path = line.rstrip().split('=')[0]
             with open(call_path,'r') as call_file:
                 # Skip the header
                 call_file.readline()
@@ -157,7 +157,7 @@ def read_spotype_calls(calls_path):
     calls = {}
     with open(calls_path,'r') as calls_file:
         for line in calls_file:
-            call_path = line.rstrip()
+            call_path = line.rstrip().split('=')[0]
             with open(call_path,'r') as call_file:
                 # Skip the header
                 call_file.readline()
