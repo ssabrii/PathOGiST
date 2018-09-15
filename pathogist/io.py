@@ -54,9 +54,14 @@ def read_snp_calls(calls_path):
         sample = defaultdict(dict)
         with open(calls_path,'r') as calls_file:
             for line in calls_file:
+                # We assume that each line of the calls_file is in the form
+                # sample_name=call_path
+                sample_name,call_path = line.rstrip().split('=')
+                '''
                 call_path = line.rstrip()
                 sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
                 sample_name = re.sub('.*/', '', sample_name)        
+                '''
                 #x=x+1
                 with open(call_path,'r') as call_file:
                     #print(x)
