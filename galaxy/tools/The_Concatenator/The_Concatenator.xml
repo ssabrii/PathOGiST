@@ -1,0 +1,27 @@
+<tool id="The_Concatenator" name="The Concatenator" version="0.1.0">
+    <description>creates a list of accessions and the associated path to their variant calls</description>
+    <requirements>
+        <requirement type="package" version="0.0.3">pathogist</requirement>
+    </requirements>
+
+    <command><![CDATA[
+        $__tool_directory__/concatenater -n #for $path in $paths# ${path.element_identifier} #end for#
+        -i #for $path in $paths# $path #end for#
+    ]]></command>
+
+    <inputs>
+        <param name="paths" type="data" label="Collection of calls" help="" optional="False" multiple="True"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" label="Paths of ${on_string}" format="txt" from_work_dir="paths.txt"/>
+    </outputs>
+
+    <help>
+
+    </help>
+
+    <citations>
+
+    </citations>
+</tool>
