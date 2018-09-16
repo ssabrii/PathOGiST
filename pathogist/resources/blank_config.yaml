@@ -17,7 +17,7 @@ distances:
     # Paths to pre-constructed distance matrices in tsv format.
     # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
     # but then they shouldn't appear in the section 'genotyping'.
-    kWIP:
+    kmer:
     spoligotyping:
 fine_clusterings:
     # The genotyping datatypes that are considered to be the "finest".
@@ -30,7 +30,7 @@ thresholds:
     SNP: 
     MLST:
     CNV: 
-    kWIP:
+    kmer:
     spoligotyping:
 # Put the path for the final consensus clustering in tsv format here.
 output:
