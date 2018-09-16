@@ -125,15 +125,23 @@ pathogist.py correlation [distance matrix] [threshold] [output path]
 
 ### Distance Matrix Creation (`pathogist.py distance`)
 This subcommand is used for creating distance matrices from genotyping calls, e.g. SNPs, MLSTs, CNVs, etc.
+Currently, this subcommand is only compatible with SNP calls from Snippy, MLST calls from MentaLiST, and CNV calls from Prince.
 The input is:
 * A text file containing paths to genotyping call files.
+
 The output is a distance matrix represented as a TSV file.
+
+You can run this subcommand like so:
+```bash
+pathogist.py distance [path/to/calls_file.tsv] [one of SNP/MLST/CNV] [output path]
+```
 
 ### Consensus Clustering (`pathogist.py consensus`)
 The input for consensus clustering is three files:
 * A text file containing paths to distance matrices in `.tsv` format.
 * A text file containing paths to clustering assignments in `.tsv` format.
 * A text file containing the names of the clusterings which are 'finest'.
+
 The output is a TSV file containing the cluster assignments of the samples which are common to all the input distance matrices.
 
 You can run consensus clustering with the following command:
