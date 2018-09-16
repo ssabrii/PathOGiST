@@ -82,7 +82,7 @@ fine_clusterings:
     # The genotyping datatypes that are considered to be the "finest".
     - MLST
     - SNP
-    - kWIP
+    - kmer
 thresholds:
     # Threshold values for performing correlation clustering on genotyping data types given above.
     # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
