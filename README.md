@@ -27,7 +27,8 @@
   Instead, download CPLEX from the website, and run `python setup.py install` within the Python API folder.
   
 ## Installation
-We recommend you create a conda environment for PathOGiST.
+You can `pathogist.py` directly from this repo as long as you have the dependencies installed.
+We recommend you create a conda environment for PathOGiST, though.
 You can easily create one by running the following command in the top directory:
 ```bash
 conda env create -f conda/environment.yaml
@@ -97,16 +98,21 @@ output:
 all_constraints: False
 ...
 ```
+Modify the configuration by adding the paths to your input files.
+You can add your own keys to the YAML configuration file, and delete the default keys which aren't relevant to your experiment.
+
 The inputs to the `genotyping` entries should be a file which contains absolute paths to your call files.
 For example, `mlst_calls.txt` should look something like:
 ```bash
-/path/to/SRR00001.calls
-/path/to/SRR00002.calls
-/path/to/SRR00003.calls
+/absolute/path/to/SRR00001.calls
+/absolute/path/to/SRR00002.calls
+/absolute/path/to/SRR00003.calls
 ```
 The output of PathOGiST is a TSV file containing the file consensus cluster assignment for each sample.
 
-### Correlation Clustering (`correlation`)
+### Correlation Clustering (`pathogist.py correlation`)
+This subcommand is for clustering bacterial samples based on a distance matrix.
+
 The inputs to correlation clustering are:
 * A distance matrix in the form of a TSV file
 * A threshold cutoff value for the construction of the similarity matrix
@@ -117,7 +123,13 @@ You can run correlation clustering with the following command:
 pathogist.py correlation [distance matrix] [threshold] [output path]
 ```
 
-### Consensus Clustering (`consensus`)
+### Distance Matrix Creation (`pathogist.py distance`)
+This subcommand is used for creating distance matrices from genotyping calls, e.g. SNPs, MLSTs, CNVs, etc.
+The input is:
+* A text file containing paths to genotyping call files.
+The output is a distance matrix represented as a TSV file.
+
+### Consensus Clustering (`pathogist.py consensus`)
 The input for consensus clustering is three files:
 * A text file containing paths to distance matrices in `.tsv` format.
 * A text file containing paths to clustering assignments in `.tsv` format.
@@ -130,7 +142,7 @@ pathogist.py consensus [distances] [clusterings] [fine_clusterings] [output path
 ```
 
 Each line of the input files should correspond to a specific data type, e.g. SNPs, MLSTs, or CNVs.
-Paths to distance matrices and cluster assignments should be prepended with the name of the clustering and an equal sign, i.e. `[name]=[path to file]`.
+Absolute paths to distance matrices and cluster assignments should be prepended with the name of the clustering and an equal sign, i.e. `[name]=[absolute path to file]`.
 An example:
 
 _Distances file_
