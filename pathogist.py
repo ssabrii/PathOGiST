@@ -20,57 +20,74 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
+def create_configuration_file(config):
+    # Copy the default configuration file to whereever the user has specified
+    src_path = pkg_resources.resource_filename(__name__,'pathogist/resources/blank_config.yaml') 
+    shutil.copyfile(src_path,config) 
+    print("New configuration file written at %s" % config)
+
+def read_configuration_file(config):
+    with open(param.config,'r') as config_stream:
+        try:
+            config = yaml.load(config_stream) 
+        except yaml.YAMLError:
+            print(yaml.YAMLError)
+            sys.exit(1)
+
+    # Make sure the configuration file is formatted correctly 
+    distance_keys_set = set(config['distances'].keys())
+    genotyping_keys_set = set(config['genotyping'].keys())
+    threshold_keys_set = set(config['thresholds'].keys())
+    fine_clusterings_set = set(config['fine_clusterings'])
+    assert( (distance_keys_set & genotyping_keys_set) == set() ),\
+        "'distances' and 'genotyping' have a key in common."
+    assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
+        "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
+    assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
+        "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+
+    # Get genotyping calls
+    logger.info('Reading genotyping calls ...')
+    read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
+                             'MLST': pathogist.io.read_mlst_calls,
+                             'CNV': pathogist.io.read_cnv_calls} 
+    calls = {}
+    for genotype in config['genotyping'].keys():
+        calls[genotype] = read_genotyping_calls[genotype](config['genotyping'][genotype]) 
+
+    # Read pre-constructed distance matrices
+    logger.info('Reading distance matrices ...')
+    distances = {}
+    for genotype in config['distances'].keys():
+        distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
+
+    return distances,calls
+
+def read_from_dir(directory):
+    distances = {}
+    calls = {}
+    return distances,calls
+
 def run_all(param):
     '''
     Run the entire PathOGiST pipeline from distance matrix creation to consensus clustering, or create
     a new configuration file.
     '''
     if param.new_config:
-        # Copy the default configuration file to whereever the user has specified
-        src_path = pkg_resources.resource_filename(__name__,'pathogist/resources/blank_config.yaml') 
-        shutil.copyfile(src_path,param.config) 
-        print("New configuration file written at %s" % param.config)
+        create_configuration_file(param.config)
     else:
-        with open(param.config,'r') as config_stream:
-            try:
-                config = yaml.load(config_stream) 
-            except yaml.YAMLError:
-                print(yaml.YAMLError)
-                sys.exit(1)
+        if param.read_from_dir:
+            distances,calls = read_from_dir(param.config)
+        else:
+            distances,calls = read_configuration_file(param.config)
 
-        # Make sure the configuration file is formatted correctly 
-        distance_keys_set = set(config['distances'].keys())
-        genotyping_keys_set = set(config['genotyping'].keys())
-        threshold_keys_set = set(config['thresholds'].keys())
-        fine_clusterings_set = set(config['fine_clusterings'])
-        assert( (distance_keys_set & genotyping_keys_set) == set() ),\
-            "'distances' and 'genotyping' have a key in common."
-        assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
-            "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
-        assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
-            "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
-
-        # Get genotyping calls
-        logger.info('Reading genotyping calls ...')
-        read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
-                                 'MLST': pathogist.io.read_mlst_calls,
-                                 'CNV': pathogist.io.read_cnv_calls} 
-        calls = {}
-        for genotype in config['genotyping'].keys():
-            calls[genotype] = read_genotyping_calls[genotype](config['genotyping'][genotype]) 
         # Create distance matrices from calls
         logger.info('Creating distance matrices ...')
         create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                     'MLST': pathogist.distance.create_mlst_distance_matrix,
                                     'CNV': pathogist.distance.create_cnv_distance_matrix} 
-        distances = {}
         for genotype in calls:
             distances[genotype] = create_genotype_distance[genotype](calls[genotype]) 
-
-        # Read pre-constructed distance matrices
-        logger.info('Reading distance matrices ...')
-        for genotype in config['distances'].keys():
-            distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
 
         # Match the distance matrices if need be
         distance_matrix_samples = [set(distances[key].columns.values) for key in distances]
@@ -98,7 +115,6 @@ def run_all(param):
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file ...')
         pathogist.io.output_clustering(summary_clustering,output_path)
-        
          
 def correlation(param):
     logger.debug("Opening distance matrix...")

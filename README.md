@@ -1,5 +1,9 @@
 # PathOGiST
 
+16 September 2018.
+This current branch contains a modification of PathOGiST that allows the program to run the entire pipeline by simply providing a directory containing input files.
+In development.
+
 ## Tasks
 - [ ] Testing
   - [ ] Create complete set of unit test scripts for majority of functions
