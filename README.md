@@ -109,7 +109,7 @@ The output of PathOGiST is a TSV file containing the file consensus cluster assi
 ### Correlation Clustering (`correlation`)
 The inputs to correlation clustering are:
 * A distance matrix in the form of a TSV file
-* A theshold cutoff value for the construction of the similarity matrix
+* A threshold cutoff value for the construction of the similarity matrix
 The output is a TSV file containing the cluster assignments of the samples described by the distance matrix.
 
 You can run correlation clustering with the following command:
