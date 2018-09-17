@@ -3,7 +3,7 @@
 import sys
 import argparse as ap
 
-parser = ap.ArgumentParser(prog='The_Concatenator', conflict_handler='resolve',
+parser = ap.ArgumentParser(prog='concatenater', conflict_handler='resolve',
                            description="Concatenates all accessions and their associated paths")
 
 input = parser.add_argument_group('Input', '')
@@ -18,4 +18,4 @@ args = parser.parse_args()
 output = open('paths.txt', 'w')
 
 for index,path in enumerate(args.input):
-    output.write("%s=%s\n" % (path, args.name[index]))
+    output.write("%s=%s\n" % (args.name[index], path))
