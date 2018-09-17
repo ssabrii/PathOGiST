@@ -1,0 +1,32 @@
+<tool id="distance" name="PathOGiST - Distance" version="1.0.0">
+    <description>: Construct distance matrix from genotyping data</description>
+    <requirements>
+        <requirement type="package" version="0.0.3">pathogist</requirement>
+    </requirements>
+
+    <command><![CDATA[
+        PATHOGIST distance $genotyping $data_type matrix.tsv
+    ]]></command>
+
+    <inputs>
+        <param name="genotyping" type="data" format="tabular" label="Calls"
+               help="File containing "/>
+        <param name="data_type" type="select" label="Data Type">
+            <option value="MLST" selected="True">MLST</option>
+            <option value="SNP">SNP</option>
+            <option value="CNV">CNV</option>
+        </param>
+    </inputs>
+
+    <outputs>
+        <data name="matrix" label="${tool.name} on ${input.name}" format="tabular" from_work_dir="matrix.tsv"/>
+    </outputs>
+
+    <help>
+
+    </help>
+
+    <citations>
+
+    </citations>
+</tool>
