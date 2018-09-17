@@ -1,4 +1,4 @@
-<tool id="concatenater" name="Concatenater" version="0.1.0">
+<tool id="concatenater" name="Concatenater" version="1.0.0">
     <description>creates a list of accessions and the associated path to their variant calls</description>
     <requirements>
         <requirement type="package" version="0.0.3">pathogist</requirement>
