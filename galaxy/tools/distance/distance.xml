@@ -10,7 +10,7 @@
 
     <inputs>
         <param name="genotyping" type="data" format="tabular" label="Calls"
-               help="File containing "/>
+               help="File containing paths to signal calls"/>
         <param name="data_type" type="select" label="Data Type">
             <option value="MLST" selected="True">MLST</option>
             <option value="SNP">SNP</option>
