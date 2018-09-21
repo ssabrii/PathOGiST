@@ -3,9 +3,12 @@ import sys
 import itertools
 import numpy
 import pandas
-import pathogist.suffix_array
-import pathogist.suffix_array_AlgorithmicAlley
+''' These imports are for the suffix array hamming distance function. Not used.
+import pathogist.suffix_array_distance
+import pathogist.suffix_array_distance.suffix_array
+import pathogist.suffix_array_distance.suffix_array_AlgorithmicAlley
 import pysais
+'''
 import time
 
 logger = logging.getLogger(__name__)

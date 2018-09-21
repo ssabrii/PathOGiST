@@ -1,0 +1,31 @@
+<tool id="visualization" name="PathOGiST - Visualization" version="1.0.0">
+    <description>: Visualize distance matrix</description>
+    <requirements>
+        <requirement type="package" version="0.0.3">pathogist</requirement>
+    </requirements>
+
+    <command><![CDATA[
+        PATHOGIST vis $distance $sample $pdf
+    ]]></command>
+
+    <inputs>
+        <param name="distance" type="data" format="tabular" label="Distance Matrix"/>
+        <param name="sample" type="text" size="30" value="sample" label="Sample Name"/>
+        <param name="pdf" type="boolean" checked="false" truevalue="--save_pdf vis.pdf" falsevalue="" label="Save PDF"/>
+    </inputs>
+
+    <outputs>
+        <data name="diagram" label="${tool.name} on ${input.name}" format="png" from_work_dir="sample.png"/>
+        <data name="pdf_output" label="${tool.name} PDF on {$input.name}" format="pdf" from_work_dir="vis.pdf">
+            <filter>pdf == True</filter>
+        </data>
+    </outputs>
+
+    <help>
+
+    </help>
+
+    <citations>
+
+    </citations>
+</tool>
