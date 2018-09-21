@@ -11,10 +11,77 @@ import cplex
 import cplex.exceptions
 from cplex.exceptions import CplexError
 import pandas
+import pulp
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
 logger.addHandler(stdout)
+
+def mixed_triplets(d):
+    for i, j, k in itertools.combinations(range(d.shape[0]), 3):
+        if d[i,j] <= 0 and d[i,k] <= 0 and d[j,k] <= 0:
+            pass
+        elif d[i,j] >= 0 and d[i,k] >= 0 and d[j,k] >= 0:
+            pass
+        else:
+            yield i,j,k
+
+def same_sign_triplets(d):
+    for i, j, k in itertools.combinations(range(d.shape[0]), 3):
+        if (d[i,j] <= 0 and d[i,k] <= 0 and d[j,k] <= 0) or (d[i,j] >= 0 and d[i,k] >= 0 and d[j,k] >= 0):
+            yield i,j,k
+
+def processProblemWithPuLP(weights, all_constraints):
+    logger.debug("Creating problem instance ... ")
+    prob = pulp.LpProblem("problem", pulp.LpMinimize)
+    N = weights.shape[0]
+    numVariables = N * (N - 1) // 2
+    variables = [pulp.LpVariable("x" + str(i), 0, 1) for i in range(numVariables)]
+    allPairs = list(itertools.combinations(range(N), 2))
+    mapDict = {pair : i for i, pair in enumerate(allPairs)}
+    allWeights = [weights[pair[0]][pair[1]] for pair in allPairs]
+    triplets = itertools.combinations(range(N), 3) if all_constraints else mixed_triplets(weights)
+    for i, j, k in triplets:
+        x1 = variables[mapDict[i, j]]
+        x2 = variables[mapDict[i, k]]
+        x3 = variables[mapDict[j, k]]
+        prob += x1 <= x2 + x3
+        prob += x2 <= x1 + x3
+        prob += x3 <= x1 + x2
+    prob += pulp.lpDot(variables, allWeights)
+    gc.collect()
+    logger.debug("Solving ... ")
+    while True:
+        status = prob.solve()
+        logger.debug("Solution status:", pulp.LpStatus[status])
+        solMatrix = numpy.zeros((N, N))
+        for i, pair in enumerate(allPairs):
+            solMatrix[pair[0]][pair[1]] = pulp.value(variables[i])
+            solMatrix[pair[1]][pair[0]] = solMatrix[pair[0]][pair[1]]
+        if all_constraints:
+            break
+        logger.debug("Processing solution ... ")
+        # check if any same sign triangle is violated:
+        violated = False
+        for i, j, k in same_sign_triplets(weights):
+            a, b, c = sorted([solMatrix[i][j], solMatrix[i][k], solMatrix[j][k]])
+            if c > a + b:
+                print("violated")
+                logger.debug("Constraint violated for triplet %s, %s and %s." % (i, j, k))
+                violated = True
+                x1 = variables[mapDict[i, j]]
+                x2 = variables[mapDict[i, k]]
+                x3 = variables[mapDict[j, k]]
+                prob += x1 <= x2 + x3
+                prob += x2 <= x1 + x3
+                prob += x3 <= x1 + x2
+        if not violated:
+            break
+        logger.debug("Re-optimizing with all violated constraints added ...")
+    logger.debug("OBJ value: %.f" % prob.objective.value())
+    print(prob.objective.value())
+    logger.debug("Finished PuLP solving.")
+    return solMatrix
 
 def processProblem(Distances, all_constraints):
     logger.debug("Creating problem instance ... ")
@@ -55,6 +122,7 @@ def processProblem(Distances, all_constraints):
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % my_prob.solution.get_objective_value())
+    print(my_prob.solution.get_objective_value())
     logger.debug("Finished CPLEX solving.")
     return solMatrix
 
@@ -62,8 +130,8 @@ def populateByNonZero(prob, Distances):
     logger.debug("Creating problem instance with all constraints")
     Distances = Distances.astype(float)
     N = Distances.shape[0]
-    numVariables = int(N * (N - 1) / 2)
-    numConstraints = int(N * (N - 1) * (N - 2) / 2)
+    numVariables = N * (N - 1) // 2
+    numConstraints = N * (N - 1) * (N - 2) // 2
     rowIndices = range(N)
     allPairs = itertools.combinations(rowIndices, 2)
     mapDict = {pair : i for i, pair in enumerate(allPairs)}
@@ -91,21 +159,6 @@ def populateByNonZero(prob, Distances):
     cols3 = itertools.chain.from_iterable((mapDict[x[0], x[1]], mapDict[x[0], x[2]], mapDict[x[1], x[2]]) for x in itertools.combinations(rowIndices, 3))
     prob.linear_constraints.set_coefficients(zip(rows3, cols3, vals3))
     return numConstraints
-
-def mixed_triplets(d):
-    for i,j,k in itertools.combinations(range(d.shape[0]), 3):
-        if d[i,j] <= 0 and d[i,k] <= 0 and d[j,k] <= 0:
-            pass
-        elif d[i,j] >= 0 and d[i,k] >= 0 and d[j,k] >= 0:
-            pass
-        else:
-            yield i,j,k
-
-def same_sign_triplets(d):
-    for i,j,k in itertools.combinations(range(d.shape[0]), 3):
-        if (d[i,j] <= 0 and d[i,k] <= 0 and d[j,k] <= 0) or (d[i,j] >= 0 and d[i,k] >= 0 and d[j,k] >= 0):
-            yield i,j,k
-
 
 def populateByNonZero_only_mixed(prob, Distances):
     logger.debug("Creating problem instance only with mixed constraints")
@@ -265,24 +318,27 @@ def clustering_to_pandas(list_of_clusters,samples):
 
 def correlation(distance_matrix, threshold, all_constraints=False):
     '''
-    Given a distance matrix as a Pandas DataFrame and a distance threshold, solve a correlation 
-    clustering problem instance LP problem and then apply the Chawla et al. 2015 rounding algorithm, 
+    Given a distance matrix as a Pandas DataFrame and a distance threshold, solve a correlation
+    clustering problem instance LP problem and then apply the Chawla et al. 2015 rounding algorithm,
     guaranteeing a 2-epsilon approximation ratio.
     @param distance_matrix: distance matrix represented as a Pandas DataFrame object, doubly indexed
                             by sample names
     @param threshold: a threshold value, in form of an int or a float
-    @param all_constraints: boolean indicating whether all triangle inequality constraints should be 
+    @param all_constraints: boolean indicating whether all triangle inequality constraints should be
                             used in the CPLEX problem
     @rvalue clustering: the approximate optimal clustering represented as a Pandas DataFrame
     '''
     threshold = float(threshold)
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
-    
+
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
-    sol_matrix = processProblem(weight_matrix.values, all_constraints)
-    if not sol_matrix:
-        raise CplexError
+    # sol_matrix = processProblem(weight_matrix.values, all_constraints)
+    # print(numpy.array(sol_matrix))
+    sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints)
+    # print(sol_matrix)
+    # if not sol_matrix:
+    #     raise CplexError
     logger.info("Applying Chawla rounding ...")
     list_of_clusters =  sorted(chawla_rounding(sol_matrix,weight_matrix.values),
                                key=lambda x:x[0])
@@ -296,7 +352,7 @@ def multiple_correlation(distance_matrix, thresholds, all_constraints=False):
     @param distance_matrix: distance matrix represented as a Pandas DataFrame object, doubly indexed
                             by sample names
     @param thresholds: a list of threshold values, where the values can be ints or floats
-    @param all_constraints: boolean indicating whether all triangle inequality constraints should be 
+    @param all_constraints: boolean indicating whether all triangle inequality constraints should be
                             used in the CPLEX problem
     @rvalue clusterings: a dictionary of clusterings (represented by Pandas DataFrames), indexed by
                          threshold values in thresholds
@@ -305,7 +361,7 @@ def multiple_correlation(distance_matrix, thresholds, all_constraints=False):
     for threshold in thresholds:
         clustering = correlation(distance_matrix,threshold,all_constraints)
         clusterings[threshold] = clustering
-    return clusterings 
+    return clusterings
 
 def create_contingency_table(A_vect,B_vect):
     '''
@@ -320,15 +376,15 @@ def create_contingency_table(A_vect,B_vect):
     '''
     assert(set(A_vect.index.values) == set(B_vect.index.values)),\
         "Clusterings A and B do not describe the same set of samples"
-        
+
     A_copy = A_vect.copy().iloc[:,0]
     B_copy = B_vect.copy().iloc[:,0]
     samples = list(A_vect.index.values)
     A_clusters = set(A_vect.iloc[:,0].tolist())
     B_clusters = set(B_vect.iloc[:,0].tolist())
-    
+
     # Index clusterings by cluster
-    A = {i: set([sample for sample in samples if A_copy[sample] == i]) 
+    A = {i: set([sample for sample in samples if A_copy[sample] == i])
          for i in A_clusters}
     A_num_samples = sum([len(A[cluster]) for cluster in A.keys()])
 
@@ -369,11 +425,11 @@ def compute_wallace_coefficient(A,B,ct=None):
     assert(numerator <= denominator)
     W = numerator/denominator
     return W
-  
+
 
 def compute_expected_wallace_coefficient(A,B,ct=None):
     '''
-    Calculate the expected value of the Wallace coefficient of clusterings A,B if A,B are 
+    Calculate the expected value of the Wallace coefficient of clusterings A,B if A,B are
     independent.
     Definition taken from "A Confidence Interval for the Wallace Coefficient of Concordance
     and Its Applications to Microbial Typing Methods" by Pinto, Melo-Cristino, and Ramirez
@@ -418,9 +474,9 @@ def compute_adjusted_wallace_coefficient(A,B):
 
 def compute_neighbor_adjusted_wallace_coefficients(clusterings,descending=True):
     '''
-    Compute the neighbor adjusted wallace coefficients of a dictionary of clusterings, where the keys 
+    Compute the neighbor adjusted wallace coefficients of a dictionary of clusterings, where the keys
     are threshold values.
-    Definition taken from paper "Rapid Identification of Stable Clusters in Bacterial Populations Using 
+    Definition taken from paper "Rapid Identification of Stable Clusters in Bacterial Populations Using
     the Adjusted Wallace Coefficient" by Barker et al, 2018.
     @param clusterings: a dictionary of clusterings (represented by Pandas DataFrames), indexed by
                          threshold values
@@ -553,4 +609,3 @@ def adjusted_rand_index(clustering1,clustering2):
     '''
     return sklearn.metrics.cluster.adjusted_rand_score(clustering1.sort_index().T.values.flatten(),
                                                        clustering2.sort_index().T.values.flatten())
-                                   
