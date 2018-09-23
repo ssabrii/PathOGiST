@@ -8,7 +8,7 @@ from scipy.cluster import hierarchy as hcl
 
 logger = logging.getLogger(__name__)
 
-def visualize(distance, name, metadata = None, columns = None, pdf = None):
+def visualize(distance, name, metadata = None, columns = None, save_path = None):
     '''
     :param distance: distance matrix
     :param name: name of the sample (and name of the pdf)
@@ -17,27 +17,9 @@ def visualize(distance, name, metadata = None, columns = None, pdf = None):
     :param create_pdf: variable for the creation of an output pdf
     '''
 
-    '''
-    if not pdf:
-        pdf = None
-        create_pdf = False
-    else:
-        pdf = PdfPages(pdf + "/" +  name + ".pdf")
-        create_pdf = True
-    '''
+    distance_histogram(distance, name, save_path)
 
-    distance_histogram(distance, name, pdf)
-    #hierarchical_clustering(distance, name, metadata, columns, pdf)
-
-    '''
-    info = pdf.infodict()
-    info['Title'] = 'Visualizations for %s' % name
-    info['CreationDate'] = dt.datetime.now()
-    pdf.close()
-    '''
-
-
-def distance_histogram(distance, name='SAMPLE', pdf = None):
+def distance_histogram(distance, name='SAMPLE', save_path=None):
     '''
     Creates a distance histogram from the distances in the
     lower triangle of the distance matrix
@@ -58,10 +40,8 @@ def distance_histogram(distance, name='SAMPLE', pdf = None):
     plt.xlabel('Distance')
     plt.ylabel('Frequency')
     plt.title('Distance Histogram for %s' % name)
-
-    if pdf is not None:
-        pdf.saveFig()
-
+    if save_path is not None:
+        plt.savefig(save_path)
     plt.show()
 
 
