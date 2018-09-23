@@ -1,0 +1,14 @@
+notifications:
+    email: false
+
+language: python
+
+python:
+    - "3.6"
+
+install:
+    - pip install -r requirements.txt
+
+script: 
+    - tests/unit_tests/unit_tests.sh
+    - tests/unit_tests/integration_tests.sh
