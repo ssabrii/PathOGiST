@@ -1,4 +1,4 @@
-name: pathogist1
+name: pathogist
 channels:
     - ibmdecisionoptimization
     - conda-forge
