@@ -1,6 +1,6 @@
 package:
   name: pathogist
-  version: "0.0.3"
+  version: "0.0.4"
 
 source:
   path: ../
@@ -17,9 +17,10 @@ requirements:
     - pandas >=0.23.4
     - scikit-learn >=0.19.1
     - pyyaml >=3.13 
+    - pulp >=1.6.8
 
 about:
-  home: https://github.com/WGS-TB/PathOGiSTPipeline
+  home: https://github.com/WGS-TB/PathOGiST
   summary: Calibrated multi-criterion genomic analysis for public health microbiology
   license: GPL-3.0
   license_file: LICENSE
