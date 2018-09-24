@@ -56,25 +56,20 @@ def read_snp_calls(calls_path):
             for line in calls_file:
                 # We assume that each line of the calls_file is in the form
                 # call_path=sample_name
-                call_path,sample_name = line.rstrip().split('=')
+                call_path = line.rstrip().split('=')[0]
                 '''
                 call_path = line.rstrip()
                 sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
                 sample_name = re.sub('.*/', '', sample_name)        
                 '''
-                #x=x+1
                 with open(call_path,'r') as call_file:
-                    #print(x)
-                        # Skip the header
-                    #call_file.readline()
-                    #x=1
+                    sample_name=call_file.readline().rstrip()
+                    sample[sample_name][-1] = -1
                     for line in call_file:
                         columns = line.rstrip().split('\t')
-                        #samples=line[2]
                         #ensure there is one entry in a sample with no snps calls 
                         sample[sample_name][-1] = -1
                         if columns[2] == "snp":
-                        #if (columns[2] == "snp" or columns[2] == "ins" or columns[2] == "complex" or columns[2] == "mnp" or columns[2] == "del"):
                             chrom_pos = columns[0]+"_"+columns[1]
                             pos_count[chrom_pos] += 1
                             sample[sample_name][chrom_pos] = columns[4]
@@ -84,9 +79,7 @@ def read_snp_calls(calls_path):
             snps = []
             sample_name_keys = sample[sample_name].keys()
             for pos in pos_count.keys():
-                #continue
                 snps.append(sample[sample_name][pos]) if pos in sample_name_keys else snps.append(ref[pos])
-            #print(1)
             calls[sample_name] = numpy.array(snps ,dtype="S1")    
     '''
         with open(calls_path,'r') as calls_file:
@@ -115,13 +108,11 @@ def read_snp_calls(calls_path):
             for i in range(4,snps_union.shape[1]):
                 snps_union.iloc[:,i].fillna(snps_union.REF, inplace=True)
     '''
+    # Using snippy-core output as input
     if calls_path.endswith("tab"):
         snps_union = pandas.read_csv(calls_path, sep='\t')
         snps_union = snps_union.drop(['CHR','POS','Reference','LOCUS_TAG' ,'GENE', 'PRODUCT', 'EFFECT'], axis=1)
-        #print(snps_union.head(30))
-        #print(snps_union.shape)
         for column in snps_union:
-        #print(column)
             if column == "CHROM" or column == "POS" or column == "TYPE" or column == "REF":
                 continue
             calls[column] = numpy.array(snps_union[column], dtype="S20")
