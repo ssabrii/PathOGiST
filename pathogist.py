@@ -75,7 +75,7 @@ def run_all(param):
         # Match the distance matrices if need be
         distance_matrix_samples = [set(distances[key].columns.values) for key in distances]
 
-        if (len(set(distance_matrix_samples)) > 1):
+        if (len(set(distance_matrix_samples)) > 1)
             logger.info('Warning: samples differ across the distance matrices.')
             logger.info('Matching distance matrices ...')
             distances = pathogist.distance.match_distance_matrices(distances)
@@ -98,6 +98,9 @@ def run_all(param):
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file ...')
         pathogist.io.output_clustering(summary_clustering,output_path)
+
+        if param.visualize:
+            pathogist.visualize.visualize_clusterings(summary_clustering)
         
          
 def correlation(param):
@@ -199,6 +202,8 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
+    all_parser.add_argument("-v","--visualize", action="store_true", default=False,
+                            help="Visualize the clusterings")
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
