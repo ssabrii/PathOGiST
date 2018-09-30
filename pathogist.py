@@ -164,8 +164,11 @@ def distance(param):
                              'CNV': pathogist.io.read_cnv_calls} 
     create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                 'MLST': pathogist.distance.create_mlst_distance_matrix,
-                                'CNV': pathogist.distance.create_cnv_distance_matrix} 
-    calls = read_genotyping_calls[param.data_type](param.calls_path)
+                                'CNV': pathogist.distance.create_cnv_distance_matrix}
+    if param.bed == "":								
+        calls = read_genotyping_calls[param.data_type](param.calls_path)
+    else:
+        calls = pathogist.io.read_snp_calls_with_bed(param.calls_path, param.bed )
     distance_matrix = create_genotype_distance[param.data_type](calls)
     if distance_matrix is not None:
         logger.info("Writing distance matrix ...")
@@ -236,6 +239,7 @@ def main():
     distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP'],
                              help = "genotyping data")
     distance_parser.add_argument("output_path", type=str, help="path to output tsv file")
+    distance_parser.add_argument("--bed", type=str, default="", required=False, help="bed file of unwanted positions in the genome")
 
     # Visualization command line arguments
     vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix")
