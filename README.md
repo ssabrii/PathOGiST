@@ -1,5 +1,5 @@
 # PathOGiST
-[![Build Status](https://travis-ci.org/WGS-TB/PythonPRINCE.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
+[![Build Status](https://travis-ci.org/WGS-TB/PathOGiST.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
 
 ## Tasks
 - [ ] Testing
