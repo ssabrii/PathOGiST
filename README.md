@@ -1,4 +1,6 @@
 # PathOGiST
+
+## Build Status
 [![Build Status](https://travis-ci.org/WGS-TB/PathOGiST.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
 
 ## Tasks
