@@ -20,7 +20,6 @@ def visualize(distance, name, metadata = None, columns = None, save_path = None)
     :param columns: list of columns in metadata file for labels on hierarchical clustering dendogram
     :param create_pdf: variable for the creation of an output pdf
     '''
-
     distance_histogram(distance, name, save_path)
 
 def distance_histogram(distance, name='SAMPLE', save_path=None):
