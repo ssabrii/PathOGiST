@@ -28,17 +28,18 @@ class DistanceTest(TestCase):
 
     def test_mlst_distance_matrix(self):
         true_matrix = pathogist.io.open_distance_file('test_data/distance/mlst_distance_matrix.tsv') 
-        pt.assert_frame_equal(pathogist.distance.create_mlst_distance_matrix(self.mlst_calls),
-                              true_matrix)
+        distance_matrix = pathogist.distance.create_mlst_distance_matrix(self.mlst_calls)
+        pt.assert_frame_equal(true_matrix,distance_matrix)
 
     def test_snp_distance_matrix(self):
         '''
         The SNP distance matrix creation function should work the same way as the MLST one, for now.
         '''
         true_matrix = pathogist.io.open_distance_file('test_data/distance/mlst_distance_matrix.tsv') 
-        pt.assert_frame_equal(pathogist.distance.create_mlst_distance_matrix(self.mlst_calls),
-                              true_matrix)
+        distance_matrix = pathogist.distance.create_snp_distance_matrix(self.mlst_calls)
+        pt.assert_frame_equal(true_matrix,distance_matrix)
 
     def test_cnv_distance_matrix(self):
         true_matrix = pathogist.io.open_distance_file('test_data/distance/cnv_distance_matrix.tsv')
-        pt.assert_frame_equal(true_matrix,pathogist.distance.create_cnv_distance_matrix(self.cnv_calls)) 
+        distance_matrix = pathogist.distance.create_cnv_distance_matrix(self.cnv_calls)
+        pt.assert_frame_equal(true_matrix,distance_matrix)
