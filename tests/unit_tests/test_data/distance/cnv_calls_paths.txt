@@ -1,1 +1,1 @@
-test_data/distance/cnv_calls.txt
+tests/unit_tests/test_data/distance/cnv_calls.txt
