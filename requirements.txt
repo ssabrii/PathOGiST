@@ -4,3 +4,4 @@ pandas==0.23.4
 scikit-learn==0.19.1
 pyyaml==3.13 
 pulp==1.6.8
+docplex>=2.7.113
