@@ -1,4 +1,4 @@
 #!/bin/bash
 
-python -m unittest test_cluster.py
-python -m unittest test_distance.py
+python -m unittest tests/unit_tests/test_cluster.py
+python -m unittest tests/unit_tests/test_distance.py
