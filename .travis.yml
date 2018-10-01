@@ -11,4 +11,4 @@ install:
 
 script: 
     - tests/unit_tests/unit_tests.sh
-    - tests/integration_tests/integration_tests.sh
+    - tests/integration_tests/integration_test.sh
