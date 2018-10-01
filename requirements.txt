@@ -5,3 +5,4 @@ scikit-learn>=0.19.1
 pyyaml>=3.13 
 pulp>=1.6.8
 networkx>=2.1
+docplex>=2.7.113
