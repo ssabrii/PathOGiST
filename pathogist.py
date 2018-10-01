@@ -239,7 +239,7 @@ def main():
     distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP'],
                              help = "genotyping data")
     distance_parser.add_argument("output_path", type=str, help="path to output tsv file")
-    distance_parser.add_argument("--bed", type=str, default="", required=False, help="bed file of unwanted positions in the genome")
+    distance_parser.add_argument("--bed", type=str, default="", required=False, help="bed file of unwanted SNP positions in the genome")
 
     # Visualization command line arguments
     vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix")
