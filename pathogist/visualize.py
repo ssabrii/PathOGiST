@@ -1,8 +1,10 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import logging
 import pandas 
 import numpy 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 from scipy.cluster import hierarchy as hcl
 import sklearn
 import sklearn.manifold
@@ -53,20 +55,21 @@ def visualize_clusterings(summary_clustering):
     @param summary_clustering: A Pandas Dataframe where the index is the sample names, columns are
                                clusterings, and entries are cluster assignments.
     '''
-    samples = summary_clusterings.index.values
+    samples = summary_clustering.index.values
     sample_positions = {sample: (random.randrange(0,100),random.randrange(0,100)) for sample in samples}
-    clusterings_names = summary_clusterings.columns.values
+    clustering_names = summary_clustering.columns.values
     
+    i = 0
     for clustering_name in clustering_names:
         plt.figure()
         graph = networkx.Graph()
         for sample in samples:
             graph.add_node(sample,Position=sample_positions[sample]) 
-        clustering = summary_clusterings[clustering_name]
+        clustering = summary_clustering[clustering_name]
         num_clusters = numpy.amax(clustering.values)
         for cluster in range(1,num_clusters+1):
-            cluster_samples = clustering.index[clustering[clustering_name] == cluster].tolist()
-            for sample1,sample2 in itertools.combinations(cluster_samples,2)
+            cluster_samples = clustering.index[clustering == cluster].tolist()
+            for sample1,sample2 in itertools.combinations(cluster_samples,2):
                 graph.add_edge(sample1,sample2)
         networkx.draw(graph)
         plt.show()
