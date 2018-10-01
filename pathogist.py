@@ -75,10 +75,12 @@ def run_all(param):
         # Match the distance matrices if need be
         distance_matrix_samples = [set(distances[key].columns.values) for key in distances]
 
-        if (len(set(distance_matrix_samples)) > 1)
+        '''
+        if (len(set(distance_matrix_samples)) > 1):
             logger.info('Warning: samples differ across the distance matrices.')
             logger.info('Matching distance matrices ...')
-            distances = pathogist.distance.match_distance_matrices(distances)
+        '''
+        distances = pathogist.distance.match_distance_matrices(distances)
             
         # dummy variables to make life easier
         genotypes = distances.keys()
