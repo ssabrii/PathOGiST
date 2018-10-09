@@ -9,7 +9,7 @@
     ]]></command>
 
     <inputs>
-        <param name="distance" type="data" format="tabular" label="Distance Matrix"/>
+        <param name="distance" type="data" format="tabular,txt" label="Distance Matrix"/>
         <param name="threshold" type="integer" value="0" label="Threshold Value"
                help="The threshold value can be determined by visualizing the distance matrix"/>
         <param name="constraints" type="boolean" checked="false" truevalue="--all_constraints" falsevalue=""

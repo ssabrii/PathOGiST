@@ -9,7 +9,7 @@
     ]]></command>
 
     <inputs>
-        <param name="distances" type="data" format="tabular" label="Distance Matrices"
+        <param name="distances" type="data" format="tabular,txt" label="Distance Matrices"
                help="File contains paths to distance matrices for different clusterings"/>
         <param name="clusterings" type="data" format="tabular" label="Clusterings"
                help="File contains paths to clusterings (matrices or lists of clustering assignments)"/>

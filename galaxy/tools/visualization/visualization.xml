@@ -9,7 +9,7 @@
     ]]></command>
 
     <inputs>
-        <param name="distance" type="data" format="tabular" label="Distance Matrix"/>
+        <param name="distance" type="data" format="tabular,txt" label="Distance Matrix"/>
         <param name="sample" type="text" size="30" value="sample" label="Sample Name"/>
         <param name="pdf" type="boolean" checked="false" truevalue="--save_pdf vis.pdf" falsevalue="" label="Save PDF"/>
     </inputs>
