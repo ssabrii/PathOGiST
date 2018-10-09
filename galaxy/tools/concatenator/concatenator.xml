@@ -1,11 +1,11 @@
-<tool id="concatenater" name="Concatenater" version="1.0.0">
+<tool id="concatenator" name="Concatenator" version="1.0.0">
     <description>creates a list of accessions and the associated path to their variant calls</description>
     <requirements>
-        <requirement type="package" version="0.0.3">pathogist</requirement>
+        <requirement type="package" version="0.0.4">pathogist</requirement>
     </requirements>
 
     <command><![CDATA[
-        $__tool_directory__/concatenater -n #for $path in $paths# ${path.element_identifier} #end for#
+        $__tool_directory__/concatenator -n #for $path in $paths# ${path.element_identifier} #end for#
         -i #for $path in $paths# $path #end for#
     ]]></command>
 
