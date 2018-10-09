@@ -1,4 +1,4 @@
-<tool id="correlation_clustering" name="PathOGiST - Consensus Clustering" version="1.0.0">
+<tool id="consensus_clustering" name="PathOGiST - Consensus Clustering" version="1.0.0">
     <description>: Performs consensus clustering on multiple clusterings</description>
     <requirements>
         <requirement type="package" version="0.0.4">pathogist</requirement>
