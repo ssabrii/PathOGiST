@@ -11,9 +11,9 @@
     <inputs>
         <param name="distances" type="data" format="tabular,txt" label="Distance Matrices"
                help="File contains paths to distance matrices for different clusterings"/>
-        <param name="clusterings" type="data" format="tabular" label="Clusterings"
+        <param name="clusterings" type="data" format="tabular,txt" label="Clusterings"
                help="File contains paths to clusterings (matrices or lists of clustering assignments)"/>
-        <param name="fine_clusterings" type="data" format="tabular" label="Fine Clusterings"
+        <param name="fine_clusterings" type="data" format="tabular,txt" label="Fine Clusterings"
                help="File contains names of the clusterings which are the finest"/>
         <param name="constraints" type="boolean" checked="false" truevalue="--all_constraints" falsevalue=""
                label="All constraints"
