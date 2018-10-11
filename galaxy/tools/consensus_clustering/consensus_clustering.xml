@@ -1,7 +1,7 @@
-<tool id="correlation_clustering" name="PathOGiST - Consensus Clustering" version="1.0.0">
+<tool id="consensus_clustering" name="PathOGiST - Consensus Clustering" version="1.0.0">
     <description>: Performs consensus clustering on multiple clusterings</description>
     <requirements>
-        <requirement type="package" version="0.0.3">pathogist</requirement>
+        <requirement type="package" version="0.0.4">pathogist</requirement>
     </requirements>
 
     <command><![CDATA[
@@ -9,11 +9,11 @@
     ]]></command>
 
     <inputs>
-        <param name="distances" type="data" format="tabular" label="Distance Matrices"
+        <param name="distances" type="data" format="tabular,txt" label="Distance Matrices"
                help="File contains paths to distance matrices for different clusterings"/>
-        <param name="clusterings" type="data" format="tabular" label="Clusterings"
+        <param name="clusterings" type="data" format="tabular,txt" label="Clusterings"
                help="File contains paths to clusterings (matrices or lists of clustering assignments)"/>
-        <param name="fine_clusterings" type="data" format="tabular" label="Fine Clusterings"
+        <param name="fine_clusterings" type="data" format="tabular,txt" label="Fine Clusterings"
                help="File contains names of the clusterings which are the finest"/>
         <param name="constraints" type="boolean" checked="false" truevalue="--all_constraints" falsevalue=""
                label="All constraints"

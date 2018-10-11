@@ -1,7 +1,7 @@
 <tool id="correlation_clustering" name="PathOGiST - Correlation Clustering" version="1.0.0">
     <description>: Runs correlation clustering on a distance matrix file</description>
     <requirements>
-        <requirement type="package" version="0.0.3">pathogist</requirement>
+        <requirement type="package" version="0.0.4">pathogist</requirement>
     </requirements>
 
     <command><![CDATA[
@@ -9,7 +9,7 @@
     ]]></command>
 
     <inputs>
-        <param name="distance" type="data" format="tabular" label="Distance Matrix"/>
+        <param name="distance" type="data" format="tabular,txt" label="Distance Matrix"/>
         <param name="threshold" type="integer" value="0" label="Threshold Value"
                help="The threshold value can be determined by visualizing the distance matrix"/>
         <param name="constraints" type="boolean" checked="false" truevalue="--all_constraints" falsevalue=""
