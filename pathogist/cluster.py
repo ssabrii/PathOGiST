@@ -14,6 +14,7 @@ import pandas
 import pulp
 import math
 from threading import Thread
+import time
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
@@ -336,7 +337,7 @@ def isCenter(v, pi_dict, G, clusterIDs):
     for u in numpy.where(V == 1)[0]:
         if pi_dict[u] < pi_dict[v]:
             # wait until clusterIDs[u] != math.inf TODO: timeout?
-            wait_until(lambda x: x != math.inf, 100, 0.25, (clusterIDs[u]))
+            wait_until(lambda x: x != math.inf, 5, 0.1, (clusterIDs[u]))
             if isCenter(u, pi_dict, G, clusterIDs):
                 return 0
     return 1
