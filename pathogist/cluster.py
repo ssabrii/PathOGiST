@@ -323,35 +323,58 @@ def wait_until(somepredicate, timeout, period=0.25, *args, **kwargs):
         if somepredicate(*args, **kwargs):
             return True
         time.sleep(period)
+        logger.debug('waiting for ', must_end - time.time())
     return False
 
-def createCluster(v, A, pi_dict, G, clusterIDs):
+def createCluster(v, m, pi, pi_dict, G, clusterIDs):
     clusterIDs[v] = pi_dict[v]
-    V = G[:,v]
-    for u in numpy.where(V == 1)[0]:
-        if u not in A:
+    for u in pi[m:]:
+        if G[u, v] == 1:
             clusterIDs[u] = min(clusterIDs[u], pi_dict[v])
 
-def isCenter(v, pi_dict, G, clusterIDs):
+def isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if v in is_center_dict:
+        return is_center_dict[v]
+    for u in pi:
+        if pi_dict[u] < pi_dict[v]:
+            if G[u, v] == 1:
+                if not wait_until(lambda x, idx: x[idx] != math.inf, 5, 0.1, clusterIDs, u):
+                    logger.debug('Timeout!', u, clusterIDs[u], clusterIDs[u] != math.inf)
+                if isCenter(u, pi, pi_dict, G, clusterIDs, is_center_dict):
+                    is_center_dict[v] = 0
+                    return 0
+        else:
+            break
+    is_center_dict[v] = 1
+    return 1
+    """
     V = G[:,v]
     for u in numpy.where(V == 1)[0]:
         if pi_dict[u] < pi_dict[v]:
+            #print(u, v, pi_dict[u], pi_dict[v])
             # wait until clusterIDs[u] != math.inf TODO: timeout?
-            wait_until(lambda x: x != math.inf, 5, 0.1, (clusterIDs[u]))
-            if isCenter(u, pi_dict, G, clusterIDs):
+            if not wait_until(lambda x, idx: x[idx] != math.inf, 5, 0.1, clusterIDs, u):
+                print('Timeout!', u, clusterIDs[u], clusterIDs[u] != math.inf)
+                #print("AGAIN")
+                #print(wait_until(lambda x, idx: x[idx] != math.inf, 20, 0.25, clusterIDs, u))
+            if isCenter(u, pi, pi_dict, G, clusterIDs, is_center_dict):
+                #print(v, "returned 0")
+                is_center_dict[v] = 0
                 return 0
+    #print(v, "returned 1")
+    is_center_dict[v] = 1
     return 1
+    """
 
-def attemptCluster(v, A, pi_dict, G, clusterIDs):
-    if clusterIDs[v] == math.inf and isCenter(v, pi_dict, G, clusterIDs):
-        createCluster(v, A, pi_dict, G, clusterIDs)
+def attemptCluster(v, m, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if clusterIDs[v] == math.inf and isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+        createCluster(v, m, pi, pi_dict, G, clusterIDs)
 
 def c4(G, epsilon):
     n = G.shape[0]
     clusterIDs = math.inf * numpy.ones(n)
     pi = numpy.random.permutation(n)
     pi_dict = {pi[i]:i for i in range(n)}
-    # max_degree = G[pi][:,pi].sum(axis=1).max()
     max_deg = G.sum(axis=1).max()
     min_deg = G.sum(axis=1).min()
     delta = max_deg
@@ -362,16 +385,16 @@ def c4(G, epsilon):
             delta /= 2
         else:
             round += 1
-        m = int(epsilon * n / delta)
+        # delta = G[pi][:,pi].sum(axis=1).max()
+        m = math.ceil(epsilon * n / delta)
         A = set(pi[:m])
         jobs = []
+        is_center_dict = dict()
         while A: # parallel
             v = A.pop()
-            j = Thread(target = attemptCluster, args=(v, A, pi_dict, G, clusterIDs))
+            j = Thread(target = attemptCluster, args=(v, m, pi, pi_dict, G, clusterIDs, is_center_dict))
             j.start()
             jobs += [j]
-            # attemptCluster(v, A, pi_dict, G, clusterIDs)
-
         for j in jobs:
             j.join()
         pi = pi[m:]
