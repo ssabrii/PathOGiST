@@ -12,6 +12,9 @@ import cplex.exceptions
 from cplex.exceptions import CplexError
 import pandas
 import pulp
+import math
+from threading import Thread
+import time
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
@@ -66,7 +69,6 @@ def processProblemWithPuLP(weights, all_constraints):
         for i, j, k in same_sign_triplets(weights):
             a, b, c = sorted([solMatrix[i][j], solMatrix[i][k], solMatrix[j][k]])
             if c > a + b:
-                print("violated")
                 logger.debug("Constraint violated for triplet %s, %s and %s." % (i, j, k))
                 violated = True
                 x1 = variables[mapDict[i, j]]
@@ -79,7 +81,6 @@ def processProblemWithPuLP(weights, all_constraints):
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % prob.objective.value())
-    print(prob.objective.value())
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
@@ -122,7 +123,6 @@ def processProblem(Distances, all_constraints):
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % my_prob.solution.get_objective_value())
-    print(my_prob.solution.get_objective_value())
     logger.debug("Finished CPLEX solving.")
     return solMatrix
 
@@ -316,6 +316,107 @@ def clustering_to_pandas(list_of_clusters,samples):
     clustering.set_index('Sample',inplace=True)
     return clustering
 
+# based on https://stackoverflow.com/a/2785908/1056345
+def wait_until(somepredicate, timeout, period=0.25, *args, **kwargs):
+    must_end = time.time() + timeout
+    while time.time() < must_end:
+        if somepredicate(*args, **kwargs):
+            return True
+        time.sleep(period)
+        logger.debug('waiting for ', must_end - time.time())
+    return False
+
+def createCluster(v, m, pi, pi_dict, G, clusterIDs):
+    clusterIDs[v] = pi_dict[v]
+    for u in pi[m:]:
+        if G[u, v] == 1:
+            clusterIDs[u] = min(clusterIDs[u], pi_dict[v])
+
+def isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if v in is_center_dict:
+        return is_center_dict[v]
+    for u in pi:
+        if pi_dict[u] < pi_dict[v]:
+            if G[u, v] == 1:
+                if not wait_until(lambda x, idx: x[idx] != math.inf, 5, 0.1, clusterIDs, u):
+                    logger.debug('Timeout!', u, clusterIDs[u], clusterIDs[u] != math.inf)
+                if isCenter(u, pi, pi_dict, G, clusterIDs, is_center_dict):
+                    is_center_dict[v] = 0
+                    return 0
+        else:
+            break
+    is_center_dict[v] = 1
+    return 1
+    """
+    V = G[:,v]
+    for u in numpy.where(V == 1)[0]:
+        if pi_dict[u] < pi_dict[v]:
+            #print(u, v, pi_dict[u], pi_dict[v])
+            # wait until clusterIDs[u] != math.inf TODO: timeout?
+            if not wait_until(lambda x, idx: x[idx] != math.inf, 5, 0.1, clusterIDs, u):
+                print('Timeout!', u, clusterIDs[u], clusterIDs[u] != math.inf)
+                #print("AGAIN")
+                #print(wait_until(lambda x, idx: x[idx] != math.inf, 20, 0.25, clusterIDs, u))
+            if isCenter(u, pi, pi_dict, G, clusterIDs, is_center_dict):
+                #print(v, "returned 0")
+                is_center_dict[v] = 0
+                return 0
+    #print(v, "returned 1")
+    is_center_dict[v] = 1
+    return 1
+    """
+
+def attemptCluster(v, m, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if clusterIDs[v] == math.inf and isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+        createCluster(v, m, pi, pi_dict, G, clusterIDs)
+
+def c4(G, epsilon):
+    n = G.shape[0]
+    clusterIDs = math.inf * numpy.ones(n)
+    pi = numpy.random.permutation(n)
+    pi_dict = {pi[i]:i for i in range(n)}
+    max_deg = G.sum(axis=1).max()
+    min_deg = G.sum(axis=1).min()
+    delta = max_deg
+    round = 0
+    while len(pi) > 0:
+        if round > (2 / epsilon) * math.log(n * math.log2(max_deg / min_deg)):
+            round = 0
+            delta /= 2
+        else:
+            round += 1
+        # delta = G[pi][:,pi].sum(axis=1).max()
+        m = math.ceil(epsilon * n / delta)
+        A = set(pi[:m])
+        jobs = []
+        is_center_dict = dict()
+        while A: # parallel
+            v = A.pop()
+            j = Thread(target = attemptCluster, args=(v, m, pi, pi_dict, G, clusterIDs, is_center_dict))
+            j.start()
+            jobs += [j]
+        for j in jobs:
+            j.join()
+        pi = pi[m:]
+    return clusterIDs
+
+def c4_correlation(distance_matrix, threshold):
+    threshold = float(threshold)
+    samples = distance_matrix.columns.values
+    n = distance_matrix.shape[0]
+    weight_matrix = threshold - distance_matrix
+    G = numpy.where(weight_matrix > 0, numpy.ones((n, n)), numpy.zeros((n, n)))
+    clusterIDs = c4(G, 0.5)
+    clusters_dict = dict()
+    for idx, c in enumerate(clusterIDs):
+        if c in clusters_dict:
+            clusters_dict[c].append(idx)
+        else:
+            clusters_dict[c] = [idx]
+    list_of_clusters = sorted(clusters_dict.values(), key=lambda x:x[0])
+    clustering = clustering_to_pandas(list_of_clusters,samples)
+    return clustering
+
 def correlation(distance_matrix, threshold, all_constraints=False):
     '''
     Given a distance matrix as a Pandas DataFrame and a distance threshold, solve a correlation
@@ -340,7 +441,7 @@ def correlation(distance_matrix, threshold, all_constraints=False):
     # if not sol_matrix:
     #     raise CplexError
     logger.info("Applying Chawla rounding ...")
-    list_of_clusters =  sorted(chawla_rounding(sol_matrix,weight_matrix.values),
+    list_of_clusters =  sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values),
                                key=lambda x:x[0])
     clustering = clustering_to_pandas(list_of_clusters,samples)
     logger.info("Done! %d clusters found" % clustering['Cluster'].values.max())
