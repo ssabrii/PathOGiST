@@ -7,3 +7,4 @@ pulp>=1.6.8
 networkx>=2.1
 docplex>=2.7.113
 cplex>=12.8
+matplotlib>=3.0.0
