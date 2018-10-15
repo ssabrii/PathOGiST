@@ -73,7 +73,7 @@ def run_all(param):
             distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
 
         # Match the distance matrices if need be
-        distance_matrix_samples = [set(distances[key].columns.values) for key in distances]
+        distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
 
         if (len(set(distance_matrix_samples)) > 1):
             logger.info('Warning: samples differ across the distance matrices.')
@@ -86,15 +86,18 @@ def run_all(param):
         all_constraints = config['all_constraints'] 
         output_path = config['output']
         fine_clusterings = config['fine_clusterings']
+        lp_solver = config['solver']
 
         clusterings = {}
         for genotype in genotypes:
             logger.info('Clustering %s ...' % genotype)
             clusterings[genotype] = pathogist.cluster.correlation(distances[genotype],
                                                                   thresholds[genotype],
-                                                                  all_constraints)     
+                                                                  all_constraints,
+                                                                  solver=lp_solver)     
         logger.info('Performing consensus clustering ...')
-        consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
+        consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
+                                                           solver=lp_solver)
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file ...')
         pathogist.io.output_clustering(summary_clustering,output_path)
@@ -202,6 +205,8 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
+    all_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
+                            help="LP solver to use")
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
@@ -210,8 +215,10 @@ def main():
     corr_parser.add_argument("threshold", type=float,help="threshold value for correlation")
     corr_parser.add_argument("output_path", type=str, help="path to write cluster output tsv file")
     corr_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
-                            help = "add all constraints to the optimization problem, "
-                                 + "not just those with mixed signs.")
+                             help = "add all constraints to the optimization problem, "
+                                  + "not just those with mixed signs.")
+    corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
+                             help="LP solver to use")
 
     # Consensus clustering command line arguments
     cons_parser = subparsers.add_parser(name='consensus',
@@ -229,6 +236,8 @@ def main():
     cons_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
                             help = "add all constraints to the optimization problem, "
                                  + " not just those with mixed signs.")
+    cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
+                             help="LP solver to use")
 
     # Distance command line arguments
     distance_parser = subparsers.add_parser(name='distance', help = "construct distance matrix from "
@@ -239,7 +248,8 @@ def main():
     distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP'],
                              help = "genotyping data")
     distance_parser.add_argument("output_path", type=str, help="path to output tsv file")
-    distance_parser.add_argument("--bed", type=str, default="", required=False, help="bed file of unwanted SNP positions in the genome")
+    distance_parser.add_argument("--bed", type=str, default="", required=False, 
+                                 help="bed file of unwanted SNP positions in the genome")
 
     # Visualization command line arguments
     vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix")
