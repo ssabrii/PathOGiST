@@ -17,18 +17,8 @@
 - [ ] Documentation
 
 ## Dependencies
-- [`python3`](https://python.org)
-- [`numpy`](https://numpy.org)
-- [`scipy`](https://scipy.org)
-- [`pandas`](https://pandas.pydata.org)
-- [`matplotlib`](https://matplotlib.org)
-- [`sklearn`](http://scikit-learn.org/stable/)
-- [`pyyaml`](https://pyyaml.org/)
-- [CPLEX](https://www.ibm.com/analytics/cplex-optimizer) and the CPLEX Python API.
-  Note: Do not install the Python CPLEX API by doing something like `pip install cplex`.
-  This will install the trial version, which cannot handle large datasets.
-  Instead, download CPLEX from the website, and run `python setup.py install` within the Python API folder.
-  
+See the file `requirements.txt`.
+ 
 ## Installation
 You can `pathogist.py` directly from this repo as long as you have the dependencies installed.
 We recommend you create a conda environment for PathOGiST, though.
