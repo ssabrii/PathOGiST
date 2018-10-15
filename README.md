@@ -1,5 +1,8 @@
 # PathOGiST
 
+## Build Status
+[![Build Status](https://travis-ci.org/WGS-TB/PathOGiST.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
+
 ## Tasks
 - [ ] Testing
   - [ ] Create complete set of unit test scripts for majority of functions

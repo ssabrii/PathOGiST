@@ -1,7 +1,7 @@
 <tool id="distance" name="PathOGiST - Distance" version="1.0.0">
     <description>: Construct distance matrix from genotyping data</description>
     <requirements>
-        <requirement type="package" version="0.0.3">pathogist</requirement>
+        <requirement type="package" version="0.0.4">pathogist</requirement>
     </requirements>
 
     <command><![CDATA[
@@ -9,7 +9,7 @@
     ]]></command>
 
     <inputs>
-        <param name="genotyping" type="data" format="tabular" label="Calls"
+        <param name="genotyping" type="data" format="tabular,txt" label="Calls"
                help="File containing paths to signal calls"/>
         <param name="data_type" type="select" label="Data Type">
             <option value="MLST" selected="True">MLST</option>

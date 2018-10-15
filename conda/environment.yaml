@@ -10,5 +10,7 @@ dependencies:
     - scikit-learn >=0.19.1
     - pyyaml >=3.13 
     - docplex >=2.7.113
+    - cplex >=12.8
     - pulp >=1.6.8
     - networkx >=2.1
+    - matplotlib >=3.0.0

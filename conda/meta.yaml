@@ -1,6 +1,6 @@
 package:
   name: pathogist
-  version: "0.0.4"
+  version: "0.0.5"
 
 source:
   path: ../
@@ -19,6 +19,8 @@ requirements:
     - pyyaml >=3.13 
     - pulp >=1.6.8
     - networkx >=2.1
+    - cplex >=12.8
+    - matplotlib >=3.0.0
 
 about:
   home: https://github.com/WGS-TB/PathOGiST

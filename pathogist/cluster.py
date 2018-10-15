@@ -316,7 +316,7 @@ def clustering_to_pandas(list_of_clusters,samples):
     clustering.set_index('Sample',inplace=True)
     return clustering
 
-def correlation(distance_matrix, threshold, all_constraints=False):
+def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp'):
     '''
     Given a distance matrix as a Pandas DataFrame and a distance threshold, solve a correlation
     clustering problem instance LP problem and then apply the Chawla et al. 2015 rounding algorithm,
@@ -326,6 +326,7 @@ def correlation(distance_matrix, threshold, all_constraints=False):
     @param threshold: a threshold value, in form of an int or a float
     @param all_constraints: boolean indicating whether all triangle inequality constraints should be
                             used in the CPLEX problem
+    @param solver: the solver to use to solve the correlation clustering instance
     @rvalue clustering: the approximate optimal clustering represented as a Pandas DataFrame
     '''
     threshold = float(threshold)
@@ -333,20 +334,23 @@ def correlation(distance_matrix, threshold, all_constraints=False):
     weight_matrix = threshold - distance_matrix
 
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
-    # sol_matrix = processProblem(weight_matrix.values, all_constraints)
-    # print(numpy.array(sol_matrix))
-    sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints)
-    # print(sol_matrix)
-    # if not sol_matrix:
-    #     raise CplexError
+    if solver == 'cplex':
+        sol_matrix = processProblem(weight_matrix.values, all_constraints)
+        if not sol_matrix:
+            raise CplexError
+    elif solver == 'pulp':
+        sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints)
+    else:
+        print("Error: unsupported solver %s" % (solver))
+        sys.exit(1)
     logger.info("Applying Chawla rounding ...")
-    list_of_clusters =  sorted(chawla_rounding(sol_matrix,weight_matrix.values),
-                               key=lambda x:x[0])
+    list_of_clusters = sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values),
+                              key=lambda x:x[0])
     clustering = clustering_to_pandas(list_of_clusters,samples)
     logger.info("Done! %d clusters found" % clustering['Cluster'].values.max())
     return clustering
 
-def multiple_correlation(distance_matrix, thresholds, all_constraints=False):
+def multiple_correlation(distance_matrix, thresholds, all_constraints=False,solver='pulp'):
     '''
     Perform correlation clustering on a list of thresholds
     @param distance_matrix: distance matrix represented as a Pandas DataFrame object, doubly indexed
@@ -354,12 +358,13 @@ def multiple_correlation(distance_matrix, thresholds, all_constraints=False):
     @param thresholds: a list of threshold values, where the values can be ints or floats
     @param all_constraints: boolean indicating whether all triangle inequality constraints should be
                             used in the CPLEX problem
+    @param solver: the solver to use to solve the correlation clustering instance
     @rvalue clusterings: a dictionary of clusterings (represented by Pandas DataFrames), indexed by
                          threshold values in thresholds
     '''
     clusterings = {}
     for threshold in thresholds:
-        clustering = correlation(distance_matrix,threshold,all_constraints)
+        clustering = correlation(distance_matrix,threshold,all_constraints,solver)
         clusterings[threshold] = clustering
     return clusterings
 
@@ -567,7 +572,7 @@ def construct_consensus_weights(clusterings,distances,fine_clusterings):
     S = Pi.subtract(D)
     return S
 
-def consensus(distances,clusterings,fine_clusterings,all_constraints=False):
+def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solver='pulp'):
     '''
     Solve an instane of consensus clustering.
     @parameter clusterings: dictionary of pandas dataframe representing multiple clusterings as vectors
@@ -575,14 +580,21 @@ def consensus(distances,clusterings,fine_clusterings,all_constraints=False):
                           different data types
     @parameter fine_clusterings: list of key values for clustering/distances corresponding to "finest"
                                  clusterings
+    @param solver: the solver to use to solve the correlation clustering instance
     @rvalue clustering: a Pandas DataFrame
     '''
     clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
     weight_matrix = construct_consensus_weights(clustering_matrices,distances,fine_clusterings)
     samples = weight_matrix.columns.values
-    sol_matrix = processProblem(weight_matrix.values,all_constraints)
-    if not sol_matrix:
-        raise CplexError
+    if solver == 'cplex':
+        sol_matrix = processProblem(weight_matrix.values,all_constraints)
+        if not sol_matrix:
+            raise CplexError
+    elif solver == 'pulp':
+        sol_matrix = processProblemWithPuLP(weight_matrix.values,all_constraints)
+    else:
+        print("Error: unsupported solver %s" % (solver))
+        sys.exit(1)
     list_of_clusters =  sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values)
                                ,key=lambda x:x[0])
     # Turn the list of clusters into pandas data frame
