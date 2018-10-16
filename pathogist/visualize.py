@@ -1,10 +1,16 @@
-import logging
-import datetime as dt
-import pandas as pd
-import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import logging
+import pandas 
+import numpy 
 from scipy.cluster import hierarchy as hcl
+import sklearn
+import sklearn.manifold
+import networkx
+import random
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +22,6 @@ def visualize(distance, name, metadata = None, columns = None, save_path = None)
     :param columns: list of columns in metadata file for labels on hierarchical clustering dendogram
     :param create_pdf: variable for the creation of an output pdf
     '''
-
     distance_histogram(distance, name, save_path)
 
 def distance_histogram(distance, name='SAMPLE', save_path=None):
@@ -31,7 +36,7 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
 
     # Obtain distances from lower triangle
     values = distance.values
-    distances = values[np.tril_indices(len(distance.index), -1)]
+    distances = values[numpy.tril_indices(len(distance.index), -1)]
 
     plt.style.use('ggplot')
     plt.figure(0)
@@ -44,13 +49,37 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-
+def visualize_clusterings(summary_clustering):
+    '''
+    Visualize the consensus clustering and correlation clusterings.
+    @param summary_clustering: A Pandas Dataframe where the index is the sample names, columns are
+                               clusterings, and entries are cluster assignments.
+    '''
+    samples = summary_clustering.index.values
+    sample_positions = {sample: (random.randrange(0,100),random.randrange(0,100)) for sample in samples}
+    clustering_names = summary_clustering.columns.values
+    
+    i = 0
+    for clustering_name in clustering_names:
+        plt.figure()
+        graph = networkx.Graph()
+        for sample in samples:
+            graph.add_node(sample,Position=sample_positions[sample]) 
+        clustering = summary_clustering[clustering_name]
+        num_clusters = numpy.amax(clustering.values)
+        for cluster in range(1,num_clusters+1):
+            cluster_samples = clustering.index[clustering == cluster].tolist()
+            for sample1,sample2 in itertools.combinations(cluster_samples,2):
+                graph.add_edge(sample1,sample2)
+        networkx.draw(graph)
+        plt.show()
+        
 def hierarchical_clustering(distance, name, metadata = None, columns = None, create_pdf = False, pdf = None):
     '''
     Runs hierarchical clustering and creates a dendrogram and MDS plot
     '''
 
-    meta = pd.read_csv(metadata, header=0, index_col=0, sep="\t")
+    meta = pandas.read_csv(metadata, header=0, index_col=0, sep="\t")
 
     # Select a subset of samples common to the distance matrix and the metadata file
     isect = [rowname for rowname in list(distance.index) if rowname in list(meta.index)]

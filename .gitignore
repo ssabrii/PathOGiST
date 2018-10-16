@@ -1,2 +1,3 @@
 *.pyc
 pathogist/__pycache__/*
+*.swp
