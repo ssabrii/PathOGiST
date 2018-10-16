@@ -21,6 +21,7 @@ requirements:
     - networkx >=2.1
     - cplex >=12.8
     - matplotlib >=3.0.0
+    - coincbc >=2.9.9
 
 about:
   home: https://github.com/WGS-TB/PathOGiST

@@ -16,4 +16,4 @@ class IntegrationTest(unittest.TestCase):
         self.clustering = pathogist.io.open_clustering_file(clustering_path)
        
     def test_integration(self):
-        pandas.testing.assert_series_equal(self.clustering['Consensus'],self.true_clustering['Consensus'])
+        pandas.testing.assert_frame_equal(self.clustering,self.true_clustering)

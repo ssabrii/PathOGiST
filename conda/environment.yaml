@@ -14,3 +14,4 @@ dependencies:
     - pulp >=1.6.8
     - networkx >=2.1
     - matplotlib >=3.0.0
+    - coincbc >=2.9.9
