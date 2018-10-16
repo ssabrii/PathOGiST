@@ -52,7 +52,7 @@ def processProblemWithPuLP(weights, all_constraints):
     gc.collect()
     logger.debug("Solving ... ")
     while True:
-        status = prob.solve()
+        status = prob.solve(pulp.COIN())
         logger.debug("Solution status:", pulp.LpStatus[status])
         solMatrix = numpy.zeros((N, N))
         for i, pair in enumerate(allPairs):
