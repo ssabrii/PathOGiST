@@ -89,6 +89,8 @@ thresholds:
 output:
 # Use all constraints when performing correlation and consensus clustering
 all_constraints: False
+# Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
+solver: pulp
 ...
 ```
 Modify the configuration by adding the paths to your input files.
