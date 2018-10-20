@@ -75,11 +75,9 @@ def run_all(param):
         # Match the distance matrices if need be
         distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
 
-        '''
         if (len(set(distance_matrix_samples)) > 1):
             logger.info('Warning: samples differ across the distance matrices.')
             logger.info('Matching distance matrices ...')
-        '''
         distances = pathogist.distance.match_distance_matrices(distances)
             
         # dummy variables to make life easier
@@ -213,7 +211,7 @@ def main():
     all_parser.add_argument("-v","--visualize", action="store_true", default=False,
                             help="Visualize the clusterings")
     all_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
-                            help="LP solver to use")
+                            help="LP solver interface to use")
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
@@ -225,7 +223,7 @@ def main():
                              help = "add all constraints to the optimization problem, "
                                   + "not just those with mixed signs.")
     corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
-                             help="LP solver to use")
+                             help="LP solver interface to use")
 
     # Consensus clustering command line arguments
     cons_parser = subparsers.add_parser(name='consensus',
@@ -244,7 +242,7 @@ def main():
                             help = "add all constraints to the optimization problem, "
                                  + " not just those with mixed signs.")
     cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
-                             help="LP solver to use")
+                             help="LP solver interface to use")
 
     # Distance command line arguments
     distance_parser = subparsers.add_parser(name='distance', help = "construct distance matrix from "
