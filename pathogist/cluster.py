@@ -12,6 +12,9 @@ import cplex.exceptions
 from cplex.exceptions import CplexError
 import pandas
 import pulp
+from threading import Thread
+import time
+import math
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
@@ -83,11 +86,11 @@ def processProblemWithPuLP(weights, all_constraints):
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
-def processProblem(Distances, all_constraints):
+def processProblem(Distances, all_constraints, start_solution):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
     N = Distances.shape[0]
-    numConstraints = populateByNonZero(my_prob, Distances) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances)
+    numConstraints = populateByNonZero(my_prob, Distances, start_solution) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances, start_solution)
     gc.collect()
     my_prob.parameters.preprocessing.presolve.set(0)
     my_prob.parameters.emphasis.memory.set(1)
@@ -126,7 +129,7 @@ def processProblem(Distances, all_constraints):
     logger.debug("Finished CPLEX solving.")
     return solMatrix
 
-def populateByNonZero(prob, Distances):
+def populateByNonZero(prob, Distances, start_solution):
     logger.debug("Creating problem instance with all constraints")
     Distances = Distances.astype(float)
     N = Distances.shape[0]
@@ -144,6 +147,9 @@ def populateByNonZero(prob, Distances):
     prob.objective.set_sense(prob.objective.sense.minimize)
     prob.linear_constraints.add(rhs = my_rhs, senses = my_sense) #, names = my_rownames)
     prob.variables.add(obj = allValues, ub = upperBounds, lb = lowerBounds) #, names = my_colnames)
+    prob.MIP_starts.add([[i for i in range(numVariables)],
+                            [start_solution[pair[0], pair[1]] for pair in itertools.combinations(rowIndices, 2)]],
+                            prob.MIP_starts.effort_level.solve_MIP)
     numBlocks = int(numConstraints/3)
     myRange = range(numBlocks)
     rows1 = itertools.chain.from_iterable(itertools.repeat(3 * x, 3) for x in myRange)
@@ -160,7 +166,7 @@ def populateByNonZero(prob, Distances):
     prob.linear_constraints.set_coefficients(zip(rows3, cols3, vals3))
     return numConstraints
 
-def populateByNonZero_only_mixed(prob, Distances):
+def populateByNonZero_only_mixed(prob, Distances, start_solution):
     logger.debug("Creating problem instance only with mixed constraints")
     N = Distances.shape[0]
     numVariables = int(N * (N - 1) / 2)
@@ -181,6 +187,9 @@ def populateByNonZero_only_mixed(prob, Distances):
     prob.objective.set_sense(prob.objective.sense.minimize)
     prob.linear_constraints.add(rhs = my_rhs, senses = my_sense) #, names = my_rownames)
     prob.variables.add(obj = allValues, ub = upperBounds, lb = lowerBounds) #, names = my_colnames)
+    prob.MIP_starts.add([[i for i in range(numVariables)],
+                            [start_solution[pair[0], pair[1]] for pair in itertools.combinations(rowIndices, 2)]],
+                            prob.MIP_starts.effort_level.solve_MIP)
     numBlocks = int(numConstraints/3)
     myRange = range(numBlocks)
     rows1 = itertools.chain.from_iterable(itertools.repeat(3 * x, 3) for x in myRange)
@@ -316,6 +325,89 @@ def clustering_to_pandas(list_of_clusters,samples):
     clustering.set_index('Sample',inplace=True)
     return clustering
 
+# based on https://stackoverflow.com/a/2785908/1056345
+def wait_until(somepredicate, timeout, period=0.25, *args, **kwargs):
+    must_end = time.time() + timeout
+    while time.time() < must_end:
+        if somepredicate(*args, **kwargs):
+            return True
+        time.sleep(period)
+        logger.debug('waiting for ', must_end - time.time())
+    return False
+
+def createCluster(v, m, pi, pi_dict, G, clusterIDs):
+    clusterIDs[v] = pi_dict[v]
+    for u in pi[m:]:
+        if G[u, v] == 1:
+            clusterIDs[u] = min(clusterIDs[u], pi_dict[v])
+
+def isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if v in is_center_dict:
+        return is_center_dict[v]
+    for u in pi:
+        if pi_dict[u] < pi_dict[v]:
+            if G[u, v] == 1:
+                if not wait_until(lambda x, idx: x[idx] != math.inf, 5, 0.1, clusterIDs, u):
+                    logger.debug('Timeout!', u, clusterIDs[u], clusterIDs[u] != math.inf)
+                if isCenter(u, pi, pi_dict, G, clusterIDs, is_center_dict):
+                    is_center_dict[v] = 0
+                    return 0
+        else:
+            break
+    is_center_dict[v] = 1
+    return 1
+
+def attemptCluster(v, m, pi, pi_dict, G, clusterIDs, is_center_dict):
+    if clusterIDs[v] == math.inf and isCenter(v, pi, pi_dict, G, clusterIDs, is_center_dict):
+        createCluster(v, m, pi, pi_dict, G, clusterIDs)
+
+def c4(G, epsilon):
+    n = G.shape[0]
+    clusterIDs = math.inf * numpy.ones(n)
+    pi = numpy.random.permutation(n)
+    pi_dict = {pi[i]:i for i in range(n)}
+    max_deg = G.sum(axis=1).max()
+    min_deg = G.sum(axis=1).min()
+    delta = max_deg
+    round = 0
+    while len(pi) > 0:
+        if round > (2 / epsilon) * math.log(n * math.log2(max_deg / min_deg)):
+            round = 0
+            delta /= 2
+        else:
+            round += 1
+        # delta = G[pi][:,pi].sum(axis=1).max()
+        m = math.ceil(epsilon * n / delta)
+        A = set(pi[:m])
+        jobs = []
+        is_center_dict = dict()
+        while A: # parallel
+            v = A.pop()
+            j = Thread(target = attemptCluster, args=(v, m, pi, pi_dict, G, clusterIDs, is_center_dict))
+            j.start()
+            jobs += [j]
+        for j in jobs:
+            j.join()
+        pi = pi[m:]
+    return clusterIDs
+
+def c4_correlation(distance_matrix, threshold):
+    threshold = float(threshold)
+    samples = distance_matrix.columns.values
+    n = distance_matrix.shape[0]
+    weight_matrix = threshold - distance_matrix
+    G = numpy.where(weight_matrix > 0, numpy.ones((n, n)), numpy.zeros((n, n)))
+    clusterIDs = c4(G, 0.5)
+    clusters_dict = dict()
+    for idx, c in enumerate(clusterIDs):
+        if c in clusters_dict:
+            clusters_dict[c].append(idx)
+        else:
+            clusters_dict[c] = [idx]
+    list_of_clusters = sorted(clusters_dict.values(), key=lambda x:x[0])
+    clustering = clustering_to_pandas(list_of_clusters,samples)
+    return clustering
+
 def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp'):
     '''
     Given a distance matrix as a Pandas DataFrame and a distance threshold, solve a correlation
@@ -333,9 +425,19 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
 
+    c4_clustering = c4_correlation(distance_matrix, threshold)
+    indexes = distance_matrix.index
+    N = distance_matrix.shape[0]
+    start_solution = numpy.ones((N, N))
+    numpy.fill_diagonal(start_solution, 0)
+    for i, j in itertools.combinations(N, 2):
+            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
+                start_solution[i, j] = 0
+                start_solution[j, i] = 0
+
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
     if solver == 'cplex':
-        sol_matrix = processProblem(weight_matrix.values, all_constraints)
+        sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
