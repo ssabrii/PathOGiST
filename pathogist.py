@@ -103,9 +103,9 @@ def run_all(param):
         pathogist.io.output_clustering(summary_clustering,output_path)
 
         if param.visualize:
+            logger.info("Visualizing clusterings...")
             pathogist.visualize.visualize_clusterings(summary_clustering)
-        
-         
+
 def correlation(param):
     logger.debug("Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
@@ -182,12 +182,14 @@ def distance(param):
         logger.info("Distance matrix creation complete!")
 
 def visualize(param): 
-    logger.info("Visualizing distance matrix ...")
-    distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
-    if param.save_pdf:
-        pathogist.visualize.visualize(distance_matrix,param.sample_name,pdf = None)
-    else:
+    if param.data_type == 'distances':
+        logger.info("Visualizing distance matrix ...")
+        distance_matrix = pathogist.io.open_distance_file(param.input)
         pathogist.visualize.visualize(distance_matrix,param.sample_name)
+    elif param.data_type == 'clustering':
+        logger.info("Visualing clusterings...")
+        summary_clustering = pathogist.io.open_clustering_file(param.input)
+        pathogist.visualize.visualize_clusterings(summary_clustering)
 
 def main():
     MAJOR_VERSION = 1
@@ -208,10 +210,10 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
-    all_parser.add_argument("-v","--visualize", action="store_true", default=False,
-                            help="Visualize the clusterings")
     all_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
                             help="LP solver interface to use")
+    all_parser.add_argument('-v','--visualize',action="store_true",default=False,
+                            help='Visualize the clusterings.')
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
@@ -257,10 +259,11 @@ def main():
                                  help="bed file of unwanted SNP positions in the genome")
 
     # Visualization command line arguments
-    vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix")
-    vis_parser.add_argument("distance_matrix",type=str,help="path to distance matrix in tsv format")
-    vis_parser.add_argument("-p","--save_pdf",type=str,metavar='DIR',help="save PDF in given directory")
-    vis_parser.add_argument("-n","--sample_name",type=str,default="sample",help="name of the sample")
+    vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix or clustering")
+    vis_parser.add_argument("input",type=str,
+                            help="path to distance matrix or clustering, all in tsv format")
+    vis_parser.add_argument("data_type",type=str,choices=['clustering','distances'],
+                            help="type of data for the input")
 
     param = parser.parse_args()
 

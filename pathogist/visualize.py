@@ -1,5 +1,8 @@
 import matplotlib
+<<<<<<< HEAD
 #matplotlib.use('Agg')
+=======
+>>>>>>> 927f759363b0ca26a4eeee6631d389bbc1c179f3
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
@@ -11,6 +14,7 @@ import sklearn.manifold
 import networkx
 import random
 import itertools
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -49,31 +53,53 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-def visualize_clusterings(summary_clustering):
+def visualize_clusterings(summary_clusterings):
     '''
     Visualize the consensus clustering and correlation clusterings.
-    @param summary_clustering: A Pandas Dataframe where the index is the sample names, columns are
-                               clusterings, and entries are cluster assignments.
+    @param summary_clusterings: A Pandas Dataframe where the index is the sample names, columns are
+                                clusterings, and entries are cluster assignments.
     '''
-    samples = summary_clustering.index.values
-    sample_positions = {sample: (random.randrange(0,100),random.randrange(0,100)) for sample in samples}
-    clustering_names = summary_clustering.columns.values
-    
-    i = 0
-    for clustering_name in clustering_names:
-        plt.figure()
+    assert('Consensus' in summary_clusterings.columns.values),\
+           'Please ensure your input clusterings contain a consensus clustering.'
+    samples = summary_clusterings.index.values
+
+    # Compute a spring layout visualization of the graph based on the consensus clustering
+    graph = networkx.Graph() 
+    for sample in samples:
+        graph.add_node(sample)
+    consensus_clustering = summary_clusterings['Consensus']
+    num_clusters = numpy.amax(consensus_clustering.values)
+    ## Add an edge between samples that are in the same cluster
+    for cluster in range(1,num_clusters+1):
+        cluster_samples = consensus_clustering.index[consensus_clustering == cluster].tolist()
+        for sample1,sample2 in itertools.combinations(cluster_samples,2):
+            graph.add_edge(sample1,sample2)
+    ## Compute the spring layout positions for each sample
+    ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
+    node_distances = 4/math.sqrt(len(samples)) 
+    sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
+
+    # Visualize the clusterings based on the spring layout
+    clustering_names = summary_clusterings.columns.values.tolist()
+    num_subplots = len(clustering_names)
+    num_rows = int(math.ceil(num_subplots/2))
+    num_cols = 2
+    for clustering_index in range(0,num_subplots):
+        subplot_index = clustering_index + 1
+        ax = plt.subplot(num_rows,num_cols,subplot_index)
+        clustering_name = clustering_names[clustering_index] 
         graph = networkx.Graph()
         for sample in samples:
-            graph.add_node(sample,Position=sample_positions[sample]) 
-            #graph.add_node(sample)
-        clustering = summary_clustering[clustering_name]
+            graph.add_node(sample)
+        clustering = summary_clusterings[clustering_name]
         num_clusters = numpy.amax(clustering.values)
         for cluster in range(1,num_clusters+1):
             cluster_samples = clustering.index[clustering == cluster].tolist()
             for sample1,sample2 in itertools.combinations(cluster_samples,2):
                 graph.add_edge(sample1,sample2)
-        networkx.draw(graph,node_size=50)
-        plt.show()
+        ax.set_title("%s Clustering" % clustering_name)
+        networkx.draw_networkx(graph,pos=sample_positions,node_size=5,width=0.25,with_labels=False)
+    plt.show()
         
 def hierarchical_clustering(distance, name, metadata = None, columns = None, create_pdf = False, pdf = None):
     '''
