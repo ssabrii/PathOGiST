@@ -1,8 +1,4 @@
 import matplotlib
-<<<<<<< HEAD
-#matplotlib.use('Agg')
-=======
->>>>>>> 927f759363b0ca26a4eeee6631d389bbc1c179f3
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
