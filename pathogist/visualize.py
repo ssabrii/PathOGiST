@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import logging
@@ -65,13 +65,14 @@ def visualize_clusterings(summary_clustering):
         graph = networkx.Graph()
         for sample in samples:
             graph.add_node(sample,Position=sample_positions[sample]) 
+            #graph.add_node(sample)
         clustering = summary_clustering[clustering_name]
         num_clusters = numpy.amax(clustering.values)
         for cluster in range(1,num_clusters+1):
             cluster_samples = clustering.index[clustering == cluster].tolist()
             for sample1,sample2 in itertools.combinations(cluster_samples,2):
                 graph.add_edge(sample1,sample2)
-        networkx.draw(graph)
+        networkx.draw(graph,node_size=50)
         plt.show()
         
 def hierarchical_clustering(distance, name, metadata = None, columns = None, create_pdf = False, pdf = None):
