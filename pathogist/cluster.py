@@ -86,13 +86,11 @@ def processProblemWithPuLP(weights, all_constraints):
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
-def processProblem(Distances, all_constraints, start_solution=None):
+def processProblem(Distances, all_constraints):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
     N = Distances.shape[0]
     numConstraints = populateByNonZero(my_prob, Distances) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances)
-    if start_solution is not None:
-        my_prob.start.set_start([my_prob.start.status.basic] * (N * (N - 1) // 2), [], [start_solution[i, j] for i, j in itertools.combinations(range(N), 2)], [], [], [])
     gc.collect()
     my_prob.parameters.preprocessing.presolve.set(0)
     my_prob.parameters.emphasis.memory.set(1)
@@ -420,21 +418,10 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
     threshold = float(threshold)
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
-
-    c4_clustering = c4_correlation(distance_matrix, threshold)
-    indexes = distance_matrix.index
-    N = distance_matrix.shape[0]
-    start_solution = numpy.ones((N, N))
-    numpy.fill_diagonal(start_solution, 0)
-    for i, j in itertools.combinations(range(N), 2):
-            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
-                start_solution[i, j] = 0
-                start_solution[j, i] = 0
     
-    s_t = time.time()
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
     if solver == 'cplex':
-        sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution)
+        sol_matrix = processProblem(weight_matrix.values, all_constraints)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
@@ -443,9 +430,6 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
         print("Error: unsupported solver %s" % (solver))
         sys.exit(1)
     logger.info("Applying Chawla rounding ...")
-    e_t = time.time()
-    print("solving time:", e_t - s_t)
-    return
     list_of_clusters = sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values),
                               key=lambda x:x[0])
     clustering = clustering_to_pandas(list_of_clusters,samples)
