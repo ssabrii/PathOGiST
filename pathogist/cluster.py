@@ -425,18 +425,18 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
 
-    c4_clustering = c4_correlation(distance_matrix, threshold)
-    indexes = distance_matrix.index
-    N = distance_matrix.shape[0]
-    start_solution = numpy.ones((N, N))
-    numpy.fill_diagonal(start_solution, 0)
-    for i, j in itertools.combinations(N, 2):
-            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
-                start_solution[i, j] = 0
-                start_solution[j, i] = 0
 
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
     if solver == 'cplex':
+        c4_clustering = c4_correlation(distance_matrix, threshold)
+        indexes = distance_matrix.index
+        N = distance_matrix.shape[0]
+        start_solution = numpy.ones((N, N))
+        numpy.fill_diagonal(start_solution, 0)
+        for i, j in itertools.combinations(N, 2):
+            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
+                start_solution[i, j] = 0
+                start_solution[j, i] = 0
         sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution)
         if not sol_matrix:
             raise CplexError

@@ -49,6 +49,12 @@ def run_all(param):
             "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
         assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+        
+        # Determine whether to save temporary files, and which directory to do so
+        if config['temp'].rstrip() != "":
+            temp_dir = config['temp'].rstrip('/')
+        else:
+            temp_dir = None
 
         # Get genotyping calls
         logger.info('Reading genotyping calls ...')
@@ -65,10 +71,15 @@ def run_all(param):
                                     'CNV': pathogist.distance.create_cnv_distance_matrix} 
         distances = {}
         for genotype in calls:
-            distances[genotype] = create_genotype_distance[genotype](calls[genotype]) 
+            distance_matrix = create_genotype_distance[genotype](calls[genotype]) 
+            distances[genotype] = distance_matrix
+            if temp_dir is not None:
+                output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
+                logger.info("Saving %s distance matrix at %s..." % (genotype,output_path)) 
+                pathogist.io.write_distance_matrix(distance_matrix,output_path) 
 
         # Read pre-constructed distance matrices
-        logger.info('Reading distance matrices ...')
+        logger.info('Reading distance matrices...')
         for genotype in config['distances'].keys():
             distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
 
@@ -78,7 +89,7 @@ def run_all(param):
         if (len(set(distance_matrix_samples)) > 1):
             logger.info('Warning: samples differ across the distance matrices.')
             logger.info('Matching distance matrices ...')
-        distances = pathogist.distance.match_distance_matrices(distances)
+            distances = pathogist.distance.match_distance_matrices(distances)
             
         # dummy variables to make life easier
         genotypes = distances.keys()
@@ -90,16 +101,20 @@ def run_all(param):
 
         clusterings = {}
         for genotype in genotypes:
-            logger.info('Clustering %s ...' % genotype)
-            clusterings[genotype] = pathogist.cluster.correlation(distances[genotype],
-                                                                  thresholds[genotype],
-                                                                  all_constraints,
-                                                                  solver=lp_solver)     
-        logger.info('Performing consensus clustering ...')
+            logger.info('Clustering %s...' % genotype)
+            clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
+                                                       all_constraints,solver=lp_solver)     
+            clusterings[genotype] = clustering
+            if temp_dir is not None:
+                logger.info("Saving %s clustering at %s..." % (genotype,output_path)) 
+                output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
+                pathogist.io.output_clustering(clustering,output_path)
+
+        logger.info('Performing consensus clustering...')
         consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
                                                            solver=lp_solver)
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
-        logger.info('Writing clusterings to file ...')
+        logger.info('Writing clusterings to file...')
         pathogist.io.output_clustering(summary_clustering,output_path)
 
         if param.visualize:
@@ -210,8 +225,6 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
-    all_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
-                            help="LP solver interface to use")
     all_parser.add_argument('-v','--visualize',action="store_true",default=False,
                             help='Visualize the clusterings.')
 
