@@ -642,20 +642,21 @@ def cluster_vector_to_matrix(cluster_vector):
 
     return cluster_matrix
 
-def construct_consensus_weights(clusterings,distances,fine_clusterings):
+def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     '''
-    @parameter clusterings: dictionary of pandas dataframe representing multiple clusterings as matrices
+    @parameter clustering_vectors: dictionary of pandas dataframe representing clusterings as vectors
     @parameter distances: dictionary of pandas dataframes representing distance matrices of
                           different data types
     @parameter fine_clusterings: list of key values for clustering/distances corresponding to "finest"
                                  clusterings
     @rvalue S: the consensus clustering weight matrix represented as a Pandas Dataframe object
     '''
+    clusterings = {key: cluster_vector_to_matrix(clustering_vectors[key]) 
+                   for key in clustering_vectors.keys()}
     normal_distances = {}
     for clustering in distances:
         max_value = numpy.amax(distances[clustering])
         normal_distances[clustering] = distances[clustering]/max_value
-
     # now construct the Pi and D matrices
     samples = clusterings[list(clusterings.keys())[0]].columns.values
     num_samples = len(samples)
@@ -674,19 +675,23 @@ def construct_consensus_weights(clusterings,distances,fine_clusterings):
     S = Pi.subtract(D)
     return S
 
-def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solver='pulp'):
+def consensus(distances,clusterings,fine_clusterings,weight_matrix=None,all_constraints=False,
+              solver='pulp'):
     '''
     Solve an instane of consensus clustering.
-    @parameter clusterings: dictionary of pandas dataframe representing multiple clusterings as vectors
-    @parameter distances: dictionary of pandas dataframes representing distance matrices of
-                          different data types
-    @parameter fine_clusterings: list of key values for clustering/distances corresponding to "finest"
-                                 clusterings
+    @param clusterings: dictionary of pandas dataframe representing multiple clusterings as vectors
+    @param distances: dictionary of pandas dataframes representing distance matrices of
+                      different data types
+    @param fine_clusterings: list of key values for clustering/distances corresponding to "finest"
+                             clusterings
+    @param weight_matrix (optional): precomputed consensus clustering weight matrix
+    @param all_constraints: boolean variable indicating whether to use all_constraints, or only those
+                            involving mixed triplets
     @param solver: the solver to use to solve the correlation clustering instance
     @rvalue clustering: a Pandas DataFrame
     '''
-    clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
-    weight_matrix = construct_consensus_weights(clustering_matrices,distances,fine_clusterings)
+    if weight_matrix is None:
+        weight_matrix = construct_consensus_weights(clusterings,distances,fine_clusterings)
     samples = weight_matrix.columns.values
     if solver == 'cplex':
         sol_matrix = processProblem(weight_matrix.values,all_constraints)
@@ -697,7 +702,7 @@ def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solve
     else:
         print("Error: unsupported solver %s" % (solver))
         sys.exit(1)
-    list_of_clusters =  sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values)
+    list_of_clusters = sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values)
                                ,key=lambda x:x[0])
     # Turn the list of clusters into pandas data frame
     clustering = clustering_to_pandas(list_of_clusters,samples)

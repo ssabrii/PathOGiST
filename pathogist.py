@@ -74,9 +74,9 @@ def run_all(param):
             distance_matrix = create_genotype_distance[genotype](calls[genotype]) 
             distances[genotype] = distance_matrix
             if temp_dir is not None:
-                output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
-                logger.info("Saving %s distance matrix at %s..." % (genotype,output_path)) 
-                pathogist.io.write_distance_matrix(distance_matrix,output_path) 
+                dist_output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
+                logger.info("Saving %s distance matrix at %s..." % (genotype,dist_output_path)) 
+                pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
 
         # Read pre-constructed distance matrices
         logger.info('Reading distance matrices...')
@@ -106,20 +106,31 @@ def run_all(param):
                                                        all_constraints,solver=lp_solver)     
             clusterings[genotype] = clustering
             if temp_dir is not None:
-                logger.info("Saving %s clustering at %s..." % (genotype,output_path)) 
-                output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
-                pathogist.io.output_clustering(clustering,output_path)
+                cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
+                logger.info("Saving %s clustering at %s..." % (genotype,cluster_output_path)) 
+                pathogist.io.output_clustering(clustering,cluster_output_path)
 
         logger.info('Performing consensus clustering...')
+
+        if param.visualize:
+            consensus_weight_matrix = pathogist.cluster.construct_consensus_weights(clusterings,
+                                                                                    distances,
+                                                                                    fine_clusterings)
+            if temp_dir is not None:
+                consensus_weight_output_path = temp_dir + "/consensus_weight_matrix.tsv"
+                logger.info("Saving consensus weight matrix at %s..." % consensus_weight_output_path)
+                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path) 
+        else:
+            consensus_weight_matrix = None            
         consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
+                                                           weight_matrix=consensus_weight_matrix,
                                                            solver=lp_solver)
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file...')
         pathogist.io.output_clustering(summary_clustering,output_path)
-
         if param.visualize:
             logger.info("Visualizing clusterings...")
-            pathogist.visualize.visualize_clusterings(summary_clustering)
+            pathogist.visualize.visualize_clusterings(summary_clustering,consensus_weight_matrix)
 
 def correlation(param):
     logger.debug("Opening distance matrix...")

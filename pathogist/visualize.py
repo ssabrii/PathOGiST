@@ -49,31 +49,57 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-def visualize_clusterings(summary_clusterings):
+def visualize_clusterings(summary_clusterings,consensus_similarity=None,offset=0.001):
     '''
     Visualize the consensus clustering and correlation clusterings.
     @param summary_clusterings: A Pandas Dataframe where the index is the sample names, columns are
                                 clusterings, and entries are cluster assignments.
+    @param consensus_similarity: A Pandas Dataframe of the similarity matrix from the consensus
+                                 clustering step of the problem
+    @param offset: If performing MDS on consensus similarity to determine positions, this is the 
+                   smallest dissimilarity value between samples 
     '''
     assert('Consensus' in summary_clusterings.columns.values),\
            'Please ensure your input clusterings contain a consensus clustering.'
     samples = summary_clusterings.index.values
 
-    # Compute a spring layout visualization of the graph based on the consensus clustering
+    # Compute the positions of the samples in the graph based on either a spring layout, or
+    # MDS of the consensus similarity matrix
     graph = networkx.Graph() 
     for sample in samples:
         graph.add_node(sample)
-    consensus_clustering = summary_clusterings['Consensus']
-    num_clusters = numpy.amax(consensus_clustering.values)
-    ## Add an edge between samples that are in the same cluster
-    for cluster in range(1,num_clusters+1):
-        cluster_samples = consensus_clustering.index[consensus_clustering == cluster].tolist()
-        for sample1,sample2 in itertools.combinations(cluster_samples,2):
-            graph.add_edge(sample1,sample2)
-    ## Compute the spring layout positions for each sample
-    ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
-    node_distances = 4/math.sqrt(len(samples)) 
-    sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
+    if consensus_similarity is None:
+        consensus_clustering = summary_clusterings['Consensus']
+        num_clusters = numpy.amax(consensus_clustering.values)
+        ## Add an edge between samples that are in the same cluster
+        for cluster in range(1,num_clusters+1):
+            cluster_samples = consensus_clustering.index[consensus_clustering == cluster].tolist()
+            for sample1,sample2 in itertools.combinations(cluster_samples,2):
+                graph.add_edge(sample1,sample2)
+        ## Compute the spring layout positions for each sample
+        ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
+        node_distances = 4/math.sqrt(len(samples)) 
+        sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
+    else:
+        # Turn the consensus clustering similarity matrix into a dissimilarity matrix by subtracting
+        # by the largest similarity value, and multiplying by -1
+        # Minimum dissimilarity between two different samples
+        max_similarity = numpy.amax(consensus_similarity.values)
+        dissimilarity_matrix = -1*(consensus_similarity - max_similarity) + offset 
+        assert(dissimilarity_matrix is not None)
+        # make sure the diagonal elements are still zero
+        numpy.fill_diagonal(dissimilarity_matrix.values,0)
+        assert(dissimilarity_matrix is not None)
+        # sort the index and columns of the dissimilarity matrix
+        dissimilarity_matrix.sort_index(axis=1,inplace=True)
+        dissimilarity_matrix.sort_index(axis=0,inplace=True)
+        # get the sample names
+        samples = sorted(dissimilarity_matrix.index.values.tolist())
+        embedding = sklearn.manifold.MDS(n_components=2,dissimilarity='precomputed')
+        sample_pos_not_df = embedding.fit_transform(dissimilarity_matrix)
+        sample_pos_df = pandas.DataFrame(data=sample_pos_not_df,index=samples,columns=['x','y'])
+        sample_positions = {sample: (sample_pos_df.loc[sample,'x'],sample_pos_df.loc[sample,'y'])
+                            for sample in samples}
 
     # Visualize the clusterings based on the spring layout
     clustering_names = summary_clusterings.columns.values.tolist()
