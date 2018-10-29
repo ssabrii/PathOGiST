@@ -18,7 +18,9 @@ import math
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
+logger.handlers = []
 logger.addHandler(stdout)
+logger.setLevel(logging.DEBUG)
 
 def mixed_triplets(d):
     for i, j, k in itertools.combinations(range(d.shape[0]), 3):
@@ -44,6 +46,7 @@ def processProblemWithPuLP(weights, all_constraints):
     mapDict = {pair : i for i, pair in enumerate(allPairs)}
     allWeights = [weights[pair[0]][pair[1]] for pair in allPairs]
     triplets = itertools.combinations(range(N), 3) if all_constraints else mixed_triplets(weights)
+    added_triplets = dict()
     for i, j, k in triplets:
         x1 = variables[mapDict[i, j]]
         x2 = variables[mapDict[i, k]]
@@ -51,12 +54,14 @@ def processProblemWithPuLP(weights, all_constraints):
         prob += x1 <= x2 + x3
         prob += x2 <= x1 + x3
         prob += x3 <= x1 + x2
+        added_triplets[tuple(sorted([i, j, k]))] = 1
     prob += pulp.lpDot(variables, allWeights)
     gc.collect()
     logger.debug("Solving ... ")
     while True:
-        status = prob.solve()
-        logger.debug("Solution status:", pulp.LpStatus[status])
+        logger.debug(len(prob.constraints))
+        status = prob.solve(solver=pulp.solvers.COIN())
+        logger.debug("Solution status: %s" % pulp.LpStatus[status])
         solMatrix = numpy.zeros((N, N))
         for i, pair in enumerate(allPairs):
             solMatrix[pair[0]][pair[1]] = pulp.value(variables[i])
@@ -69,12 +74,16 @@ def processProblemWithPuLP(weights, all_constraints):
         for i, j, k in same_sign_triplets(weights):
             a, b, c = sorted([solMatrix[i][j], solMatrix[i][k], solMatrix[j][k]])
             if c > a + b:
-                print("violated")
                 logger.debug("Constraint violated for triplet %s, %s and %s." % (i, j, k))
+                logger.debug("Values are %s, %s and %s" % (a, b, c))
                 violated = True
+                if tuple(sorted([i, j, k])) in added_triplets:
+                    logger.debug("SOMETHING IS WRONG")
+                added_triplets[tuple(sorted([i, j, k]))] = 1
                 x1 = variables[mapDict[i, j]]
                 x2 = variables[mapDict[i, k]]
                 x3 = variables[mapDict[j, k]]
+                logger.debug("Variables are %s, %s and %s" % (x1, x2, x3))
                 prob += x1 <= x2 + x3
                 prob += x2 <= x1 + x3
                 prob += x3 <= x1 + x2
@@ -82,17 +91,14 @@ def processProblemWithPuLP(weights, all_constraints):
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % prob.objective.value())
-    print(prob.objective.value())
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
-def processProblem(Distances, all_constraints, start_solution=None):
+def processProblem(Distances, all_constraints):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
     N = Distances.shape[0]
     numConstraints = populateByNonZero(my_prob, Distances) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances)
-    if start_solution is not None:
-        my_prob.start.set_start([my_prob.start.status.basic] * (N * (N - 1) // 2), [], [start_solution[i, j] for i, j in itertools.combinations(range(N), 2)], [], [], [])
     gc.collect()
     my_prob.parameters.preprocessing.presolve.set(0)
     my_prob.parameters.emphasis.memory.set(1)
@@ -420,21 +426,10 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
     threshold = float(threshold)
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
-
-    c4_clustering = c4_correlation(distance_matrix, threshold)
-    indexes = distance_matrix.index
-    N = distance_matrix.shape[0]
-    start_solution = numpy.ones((N, N))
-    numpy.fill_diagonal(start_solution, 0)
-    for i, j in itertools.combinations(range(N), 2):
-            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
-                start_solution[i, j] = 0
-                start_solution[j, i] = 0
     
-    s_t = time.time()
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
     if solver == 'cplex':
-        sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution)
+        sol_matrix = processProblem(weight_matrix.values, all_constraints)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
@@ -443,9 +438,6 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
         print("Error: unsupported solver %s" % (solver))
         sys.exit(1)
     logger.info("Applying Chawla rounding ...")
-    e_t = time.time()
-    print("solving time:", e_t - s_t)
-    return
     list_of_clusters = sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values),
                               key=lambda x:x[0])
     clustering = clustering_to_pandas(list_of_clusters,samples)
