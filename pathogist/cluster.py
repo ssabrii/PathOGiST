@@ -86,11 +86,11 @@ def processProblemWithPuLP(weights, all_constraints):
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
-def processProblem(Distances, all_constraints, start_solution):
+def processProblem(Distances, all_constraints):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
     N = Distances.shape[0]
-    numConstraints = populateByNonZero(my_prob, Distances, start_solution) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances, start_solution)
+    numConstraints = populateByNonZero(my_prob, Distances) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances)
     gc.collect()
     my_prob.parameters.preprocessing.presolve.set(0)
     my_prob.parameters.emphasis.memory.set(1)
@@ -129,7 +129,7 @@ def processProblem(Distances, all_constraints, start_solution):
     logger.debug("Finished CPLEX solving.")
     return solMatrix
 
-def populateByNonZero(prob, Distances, start_solution):
+def populateByNonZero(prob, Distances):
     logger.debug("Creating problem instance with all constraints")
     Distances = Distances.astype(float)
     N = Distances.shape[0]
@@ -147,9 +147,6 @@ def populateByNonZero(prob, Distances, start_solution):
     prob.objective.set_sense(prob.objective.sense.minimize)
     prob.linear_constraints.add(rhs = my_rhs, senses = my_sense) #, names = my_rownames)
     prob.variables.add(obj = allValues, ub = upperBounds, lb = lowerBounds) #, names = my_colnames)
-    prob.MIP_starts.add([[i for i in range(numVariables)],
-                            [start_solution[pair[0], pair[1]] for pair in itertools.combinations(rowIndices, 2)]],
-                            prob.MIP_starts.effort_level.solve_MIP)
     numBlocks = int(numConstraints/3)
     myRange = range(numBlocks)
     rows1 = itertools.chain.from_iterable(itertools.repeat(3 * x, 3) for x in myRange)
@@ -166,7 +163,7 @@ def populateByNonZero(prob, Distances, start_solution):
     prob.linear_constraints.set_coefficients(zip(rows3, cols3, vals3))
     return numConstraints
 
-def populateByNonZero_only_mixed(prob, Distances, start_solution):
+def populateByNonZero_only_mixed(prob, Distances):
     logger.debug("Creating problem instance only with mixed constraints")
     N = Distances.shape[0]
     numVariables = int(N * (N - 1) / 2)
@@ -187,9 +184,6 @@ def populateByNonZero_only_mixed(prob, Distances, start_solution):
     prob.objective.set_sense(prob.objective.sense.minimize)
     prob.linear_constraints.add(rhs = my_rhs, senses = my_sense) #, names = my_rownames)
     prob.variables.add(obj = allValues, ub = upperBounds, lb = lowerBounds) #, names = my_colnames)
-    prob.MIP_starts.add([[i for i in range(numVariables)],
-                            [start_solution[pair[0], pair[1]] for pair in itertools.combinations(rowIndices, 2)]],
-                            prob.MIP_starts.effort_level.solve_MIP)
     numBlocks = int(numConstraints/3)
     myRange = range(numBlocks)
     rows1 = itertools.chain.from_iterable(itertools.repeat(3 * x, 3) for x in myRange)
@@ -428,16 +422,7 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
 
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
     if solver == 'cplex':
-        c4_clustering = c4_correlation(distance_matrix, threshold)
-        indexes = distance_matrix.index
-        N = distance_matrix.shape[0]
-        start_solution = numpy.ones((N, N))
-        numpy.fill_diagonal(start_solution, 0)
-        for i, j in itertools.combinations(N, 2):
-            if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
-                start_solution[i, j] = 0
-                start_solution[j, i] = 0
-        sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution)
+        sol_matrix = processProblem(weight_matrix.values, all_constraints)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
