@@ -71,7 +71,7 @@ def run_all(param):
                                     'CNV': pathogist.distance.create_cnv_distance_matrix} 
         distances = {}
         for genotype in calls:
-            distance_matrix = create_genotype_distance[genotype](calls[genotype]) 
+            distance_matrix = create_genotype_distance[genotype](calls[genotype])
             distances[genotype] = distance_matrix
             if temp_dir is not None:
                 dist_output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
@@ -99,6 +99,9 @@ def run_all(param):
         fine_clusterings = config['fine_clusterings']
         lp_solver = config['solver']
 
+        for genotype in genotypes:
+            distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
+
         clusterings = {}
         for genotype in genotypes:
             logger.info('Clustering %s...' % genotype)
@@ -109,7 +112,7 @@ def run_all(param):
                 cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
                 logger.info("Saving %s clustering at %s..." % (genotype,cluster_output_path)) 
                 pathogist.io.output_clustering(clustering,cluster_output_path)
-
+        
         logger.info('Performing consensus clustering...')
 
         if param.visualize:

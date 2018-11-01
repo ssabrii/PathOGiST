@@ -18,6 +18,7 @@ import math
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
+logger.handlers = []
 logger.addHandler(stdout)
 
 def mixed_triplets(d):
@@ -48,19 +49,21 @@ def processProblemWithPuLP(weights, all_constraints):
         x1 = variables[mapDict[i, j]]
         x2 = variables[mapDict[i, k]]
         x3 = variables[mapDict[j, k]]
-        prob += x1 <= x2 + x3
-        prob += x2 <= x1 + x3
-        prob += x3 <= x1 + x2
+        prob += x1 <= x2 + x3, "C_%d,%d,%d_1" % (i, j, k) 
+        prob += x2 <= x1 + x3, "C_%d,%d,%d_2" % (i, j, k)
+        prob += x3 <= x1 + x2, "C_%d,%d,%d_3" % (i, j, k)
     prob += pulp.lpDot(variables, allWeights)
     gc.collect()
     logger.debug("Solving ... ")
     while True:
         status = prob.solve(pulp.COIN())
-        logger.debug("Solution status:", pulp.LpStatus[status])
+        logger.debug("Solution status: %s" % pulp.LpStatus[status])
         solMatrix = numpy.zeros((N, N))
         for i, pair in enumerate(allPairs):
             solMatrix[pair[0]][pair[1]] = pulp.value(variables[i])
             solMatrix[pair[1]][pair[0]] = solMatrix[pair[0]][pair[1]]
+        solMatrix[solMatrix < 0] = 0
+        solMatrix[solMatrix > 1] = 1
         if all_constraints:
             break
         logger.debug("Processing solution ... ")
@@ -68,21 +71,21 @@ def processProblemWithPuLP(weights, all_constraints):
         violated = False
         for i, j, k in same_sign_triplets(weights):
             a, b, c = sorted([solMatrix[i][j], solMatrix[i][k], solMatrix[j][k]])
-            if c > a + b:
-                print("violated")
+            EPSILON = 10**-8
+            if c - a - b > EPSILON: 
                 logger.debug("Constraint violated for triplet %s, %s and %s." % (i, j, k))
                 violated = True
                 x1 = variables[mapDict[i, j]]
                 x2 = variables[mapDict[i, k]]
                 x3 = variables[mapDict[j, k]]
-                prob += x1 <= x2 + x3
-                prob += x2 <= x1 + x3
-                prob += x3 <= x1 + x2
+
+                prob += x1 <= x2 + x3, "C_%d,%d,%d_1" % (i, j, k)
+                prob += x2 <= x1 + x3, "C_%d,%d,%d_2" % (i, j, k)
+                prob += x3 <= x1 + x2, "C_%d,%d,%d_3" % (i, j, k)
         if not violated:
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % prob.objective.value())
-    print(prob.objective.value())
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
