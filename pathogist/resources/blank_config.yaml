@@ -38,4 +38,6 @@ output:
 all_constraints: False
 # Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
 solver: pulp
+# Directory to save temporary files. Leave blank if you don't want to save them.
+temp: 
 ...
