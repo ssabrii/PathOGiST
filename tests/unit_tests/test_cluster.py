@@ -44,3 +44,26 @@ class ClusterTest(unittest.TestCase):
         samples = list(clustering.index.values)
         pt.assert_series_equal(clustering.loc[samples,'Consensus'],
                               true_clustering.loc[samples,'Consensus'])
+
+
+    def test_processProblemWithPulp(self):
+        threshold = 500
+        mlst_weights = threshold - self.mlst_dist
+        samples = self.mlst_dist.columns.values
+        sol_matrix = pathogist.cluster.processProblemWithPuLP(mlst_weights.values, False)
+        sol_matrix = pd.DataFrame(sol_matrix, index=samples, columns=samples)
+        true_sol_matrix_path = 'tests/unit_tests/test_data/cluster/yersinia_mlst_pulp_sol_matrix.tsv'
+        true_sol_matrix = pathogist.io.open_distance_file(true_sol_matrix_path)
+        pt.assert_frame_equal(sol_matrix, true_sol_matrix)
+
+"""
+    def test_derandomized_chawla_rounding(self):
+        threshold = 500
+        mlst_weights = threshold - self.mlst_dist.sort_index()
+        sol_matrix = pathogist.cluster.processProblem(mlst_weights.values, False)
+        rounding = derandomized_chawla_rounding(sol_matrix, mlst_weights.values)
+        rounding_df = pd.DataFrame(sorted(rounding, key=lambda x:x[0]))
+        true_rounding_path = 'tests/unit_tests/test_data/cluster/yersinia_mlst_rounding.tsv'
+        true_rounding = pd.read_csv(true_rounding_path,header=0,index_col=0,sep='\t')
+        pt.assert_frame_equal(rounding_df, true_rounding)
+"""
