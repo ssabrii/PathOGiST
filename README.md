@@ -17,7 +17,9 @@
 - [ ] Documentation
 
 ## Dependencies
-See the file `requirements.txt`.
+Do the following commands:
+* `pip install -r requirements.txt`.
+* `apt install coinor-cbc`
  
 ## Installation
 You can `pathogist.py` directly from this repo as long as you have the dependencies installed.
