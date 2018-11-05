@@ -1,6 +1,6 @@
 package:
   name: pathogist
-  version: "0.0.6"
+  version: "0.0.1"
 
 source:
   path: ../
@@ -8,8 +8,6 @@ source:
 requirements:
   host:
     - python ==3.5
-    - setuptools
-
   run:
     - python
     - numpy >=1.15.1
@@ -18,9 +16,10 @@ requirements:
     - scikit-learn >=0.19.1
     - pyyaml >=3.13 
     - pulp >=1.6.8
-    - networkx >=2.1
+    - networkx
     - cplex >=12.8
-    - matplotlib >=3.0.0
+    - matplotlib
+    - coincbc >=2.9.9
 
 about:
   home: https://github.com/WGS-TB/PathOGiST

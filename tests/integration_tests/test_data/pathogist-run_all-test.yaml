@@ -31,4 +31,5 @@ output: tests/integration_tests/test_data/yersinia_final_clustering.tsv
 # Use all constraints when performing correlation and consensus clustering
 all_constraints: False
 solver: pulp
+temp: tests/integration_tests/temp_dir
 ...

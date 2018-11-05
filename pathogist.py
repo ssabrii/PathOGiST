@@ -49,6 +49,12 @@ def run_all(param):
             "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
         assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+        
+        # Determine whether to save temporary files, and which directory to do so
+        if config['temp'].rstrip() != "":
+            temp_dir = config['temp'].rstrip('/')
+        else:
+            temp_dir = None
 
         # Get genotyping calls
         logger.info('Reading genotyping calls ...')
@@ -65,10 +71,15 @@ def run_all(param):
                                     'CNV': pathogist.distance.create_cnv_distance_matrix} 
         distances = {}
         for genotype in calls:
-            distances[genotype] = create_genotype_distance[genotype](calls[genotype]) 
+            distance_matrix = create_genotype_distance[genotype](calls[genotype])
+            distances[genotype] = distance_matrix
+            if temp_dir is not None:
+                dist_output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
+                logger.info("Saving %s distance matrix at %s..." % (genotype,dist_output_path)) 
+                pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
 
         # Read pre-constructed distance matrices
-        logger.info('Reading distance matrices ...')
+        logger.info('Reading distance matrices...')
         for genotype in config['distances'].keys():
             distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
 
@@ -78,7 +89,7 @@ def run_all(param):
         if (len(set(distance_matrix_samples)) > 1):
             logger.info('Warning: samples differ across the distance matrices.')
             logger.info('Matching distance matrices ...')
-        distances = pathogist.distance.match_distance_matrices(distances)
+            distances = pathogist.distance.match_distance_matrices(distances)
             
         # dummy variables to make life easier
         genotypes = distances.keys()
@@ -88,24 +99,42 @@ def run_all(param):
         fine_clusterings = config['fine_clusterings']
         lp_solver = config['solver']
 
+        for genotype in genotypes:
+            distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
+
         clusterings = {}
         for genotype in genotypes:
-            logger.info('Clustering %s ...' % genotype)
-            clusterings[genotype] = pathogist.cluster.correlation(distances[genotype],
-                                                                  thresholds[genotype],
-                                                                  all_constraints,
-                                                                  solver=lp_solver)     
-        logger.info('Performing consensus clustering ...')
-        consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
-                                                           solver=lp_solver)
-        summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
-        logger.info('Writing clusterings to file ...')
-        pathogist.io.output_clustering(summary_clustering,output_path)
+            logger.info('Clustering %s...' % genotype)
+            clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
+                                                       all_constraints,solver=lp_solver)     
+            clusterings[genotype] = clustering
+            if temp_dir is not None:
+                cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
+                logger.info("Saving %s clustering at %s..." % (genotype,cluster_output_path)) 
+                pathogist.io.output_clustering(clustering,cluster_output_path)
+        
+        logger.info('Performing consensus clustering...')
 
         if param.visualize:
-            pathogist.visualize.visualize_clusterings(summary_clustering)
-        
-         
+            consensus_weight_matrix = pathogist.cluster.construct_consensus_weights(clusterings,
+                                                                                    distances,
+                                                                                    fine_clusterings)
+            if temp_dir is not None:
+                consensus_weight_output_path = temp_dir + "/consensus_weight_matrix.tsv"
+                logger.info("Saving consensus weight matrix at %s..." % consensus_weight_output_path)
+                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path) 
+        else:
+            consensus_weight_matrix = None            
+        consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
+                                                           weight_matrix=consensus_weight_matrix,
+                                                           solver=lp_solver)
+        summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
+        logger.info('Writing clusterings to file...')
+        pathogist.io.output_clustering(summary_clustering,output_path)
+        if param.visualize:
+            logger.info("Visualizing clusterings...")
+            pathogist.visualize.visualize_clusterings(summary_clustering,consensus_weight_matrix)
+
 def correlation(param):
     logger.debug("Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
@@ -182,12 +211,14 @@ def distance(param):
         logger.info("Distance matrix creation complete!")
 
 def visualize(param): 
-    logger.info("Visualizing distance matrix ...")
-    distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
-    if param.save_pdf:
-        pathogist.visualize.visualize(distance_matrix,param.sample_name,pdf = None)
-    else:
+    if param.data_type == 'distances':
+        logger.info("Visualizing distance matrix ...")
+        distance_matrix = pathogist.io.open_distance_file(param.input)
         pathogist.visualize.visualize(distance_matrix,param.sample_name)
+    elif param.data_type == 'clustering':
+        logger.info("Visualing clusterings...")
+        summary_clustering = pathogist.io.open_clustering_file(param.input)
+        pathogist.visualize.visualize_clusterings(summary_clustering)
 
 def main():
     MAJOR_VERSION = 1
@@ -208,10 +239,8 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
-    all_parser.add_argument("-v","--visualize", action="store_true", default=False,
-                            help="Visualize the clusterings")
-    all_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
-                            help="LP solver interface to use")
+    all_parser.add_argument('-v','--visualize',action="store_true",default=False,
+                            help='Visualize the clusterings.')
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
@@ -257,10 +286,11 @@ def main():
                                  help="bed file of unwanted SNP positions in the genome")
 
     # Visualization command line arguments
-    vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix")
-    vis_parser.add_argument("distance_matrix",type=str,help="path to distance matrix in tsv format")
-    vis_parser.add_argument("-p","--save_pdf",type=str,metavar='DIR',help="save PDF in given directory")
-    vis_parser.add_argument("-n","--sample_name",type=str,default="sample",help="name of the sample")
+    vis_parser = subparsers.add_parser(name='visualize',help="visualize distance matrix or clustering")
+    vis_parser.add_argument("input",type=str,
+                            help="path to distance matrix or clustering, all in tsv format")
+    vis_parser.add_argument("data_type",type=str,choices=['clustering','distances'],
+                            help="type of data for the input")
 
     param = parser.parse_args()
 

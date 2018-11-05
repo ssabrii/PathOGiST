@@ -29,6 +29,8 @@ class DistanceTest(TestCase):
     def test_mlst_distance_matrix(self):
         true_matrix = pathogist.io.open_distance_file('tests/unit_tests/test_data/distance/mlst_distance_matrix.tsv') 
         distance_matrix = pathogist.distance.create_mlst_distance_matrix(self.mlst_calls)
+        true_matrix = true_matrix.sort_index(axis=0).sort_index(axis=1)
+        distance_matrix = distance_matrix.sort_index(axis=0).sort_index(axis=1)
         pt.assert_frame_equal(true_matrix,distance_matrix)
 
     def test_snp_distance_matrix(self):
@@ -37,9 +39,13 @@ class DistanceTest(TestCase):
         '''
         true_matrix = pathogist.io.open_distance_file('tests/unit_tests/test_data/distance/mlst_distance_matrix.tsv') 
         distance_matrix = pathogist.distance.create_snp_distance_matrix(self.mlst_calls)
-        pt.assert_frame_equal(true_matrix,distance_matrix)
+        true_matrix = true_matrix.sort_index(axis=0).sort_index(axis=1)
+        distance_matrix = distance_matrix.sort_index(axis=0).sort_index(axis=1)
+        pt.assert_frame_equal(true_matrix.sort_index(axis=0),distance_matrix.sort_index(axis=0))
 
     def test_cnv_distance_matrix(self):
         true_matrix = pathogist.io.open_distance_file('tests/unit_tests/test_data/distance/cnv_distance_matrix.tsv')
         distance_matrix = pathogist.distance.create_cnv_distance_matrix(self.cnv_calls)
-        pt.assert_frame_equal(true_matrix,distance_matrix)
+        true_matrix = true_matrix.sort_index(axis=0).sort_index(axis=1)
+        distance_matrix = distance_matrix.sort_index(axis=0).sort_index(axis=1)
+        pt.assert_frame_equal(true_matrix.sort_index(axis=0),distance_matrix.sort_index(axis=0))

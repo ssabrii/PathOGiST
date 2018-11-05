@@ -17,24 +17,26 @@
 - [ ] Documentation
 
 ## Dependencies
-See the file `requirements.txt`.
+Do the following commands:
+* `pip install -r requirements.txt`.
+* `apt install coinor-cbc`
  
 ## Installation
 You can `pathogist.py` directly from this repo as long as you have the dependencies installed.
-We recommend you create a conda environment for PathOGiST, though.
-You can easily create one by running the following command in the top directory:
+We recommend you create a conda environment for PathOGiST, though, and install PathOGiST through conda.
+First, add the Anaconda channel `ibmdecisionoptimization` to your conda config like so:
 ```bash
-conda env create -f conda/environment.yaml
+conda config --add channels ibmdecisionoptimization
 ```
-This will create a conda environment called `pathogist`, which you can activate by running
+PathOGiSt requires Python 3.5, so create a conda environment with the right python version:
 ```bash
-source activate pathogist
+conda create --name pathogist python=3.5
 ```
-and deactivate with
+And then install PathOGiST:
 ```bash
-source deactivate
+conda install -c seanla pathogist
 ```
-When inside the `pathogist` conda environment, you can then simply run `/path/to/pathogist.py`.
+When inside the `pathogist` conda environment, you can then simply run `PATHOGIST -h`, for example.
 Note that you will need to install CPLEX separately, as CPLEX is proprietary software.
 
 ## Subcommands
