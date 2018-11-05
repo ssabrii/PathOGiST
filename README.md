@@ -4,9 +4,9 @@
 [![Build Status](https://travis-ci.org/WGS-TB/PathOGiST.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
 
 ## Tasks
-- [ ] Testing
-  - [ ] Create complete set of unit test scripts for majority of functions
-  - [ ] Add a continuous integration suite (such as [Travis CI](https://travis-ci.org/))
+- [x] Testing
+  - [x] Create complete set of unit test scripts for majority of functions
+  - [x] Add a continuous integration suite (such as [Travis CI](https://travis-ci.org/))
 - [ ] Distribution
   - [x] Create [Conda](https://conda.io) package
   - [ ] Create [pip](https://pip.pypa.io/en/stable/) package
