@@ -49,12 +49,12 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-def visualize_clusterings(summary_clusterings,consensus_similarity=None,offset=0.001):
+def visualize_clusterings(summary_clusterings,distance=None,is_consensus_sim=False,offset=0.001):
     '''
     Visualize the consensus clustering and correlation clusterings.
     @param summary_clusterings: A Pandas Dataframe where the index is the sample names, columns are
                                 clusterings, and entries are cluster assignments.
-    @param consensus_similarity: A Pandas Dataframe of the similarity matrix from the consensus
+    @param distance: A Pandas Dataframe of the similarity matrix from the consensus
                                  clustering step of the problem
     @param offset: If performing MDS on consensus similarity to determine positions, this is the 
                    smallest dissimilarity value between samples 
@@ -68,7 +68,7 @@ def visualize_clusterings(summary_clusterings,consensus_similarity=None,offset=0
     graph = networkx.Graph() 
     for sample in samples:
         graph.add_node(sample)
-    if consensus_similarity is None:
+    if distance is None:
         consensus_clustering = summary_clusterings['Consensus']
         num_clusters = numpy.amax(consensus_clustering.values)
         ## Add an edge between samples that are in the same cluster
@@ -80,12 +80,12 @@ def visualize_clusterings(summary_clusterings,consensus_similarity=None,offset=0
         ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
         node_distances = 4/math.sqrt(len(samples)) 
         sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
-    else:
+    elif is_consensus_sim:
         # Turn the consensus clustering similarity matrix into a dissimilarity matrix by subtracting
         # by the largest similarity value, and multiplying by -1
         # Minimum dissimilarity between two different samples
-        max_similarity = numpy.amax(consensus_similarity.values)
-        dissimilarity_matrix = -1*(consensus_similarity - max_similarity) + offset 
+        max_similarity = numpy.amax(distance.values)
+        dissimilarity_matrix = -1*(distance - max_similarity) + offset 
         assert(dissimilarity_matrix is not None)
         # make sure the diagonal elements are still zero
         numpy.fill_diagonal(dissimilarity_matrix.values,0)
@@ -100,6 +100,13 @@ def visualize_clusterings(summary_clusterings,consensus_similarity=None,offset=0
         sample_pos_df = pandas.DataFrame(data=sample_pos_not_df,index=samples,columns=['x','y'])
         sample_positions = {sample: (sample_pos_df.loc[sample,'x'],sample_pos_df.loc[sample,'y'])
                             for sample in samples}
+    else:
+        embedding = sklearn.manifold.MDS(n_components=2,dissimilarity='precomputed')
+        sample_pos_not_df = embedding.fit_transform(distance)
+        sample_pos_df = pandas.DataFrame(data=sample_pos_not_df,index=samples,columns=['x','y'])
+        sample_positions = {sample: (sample_pos_df.loc[sample,'x'],sample_pos_df.loc[sample,'y'])
+                            for sample in samples}
+        
 
     # Visualize the clusterings based on the spring layout
     clustering_names = summary_clusterings.columns.values.tolist()
