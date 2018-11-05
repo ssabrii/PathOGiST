@@ -22,7 +22,7 @@ Do the following commands:
 * `apt install coinor-cbc`
  
 ## Installation
-You can `pathogist.py` directly from this repo as long as you have the dependencies installed.
+You can `PATHOGIST` directly from this repo as long as you have the dependencies installed.
 We recommend you create a conda environment for PathOGiST, though, and install PathOGiST through conda.
 First, add the Anaconda channel `ibmdecisionoptimization` to your conda config like so:
 ```bash
@@ -41,13 +41,13 @@ Note that you will need to install CPLEX separately, as CPLEX is proprietary sof
 
 ## Subcommands
 
-### Entire Pipeline (`all`)
+### Entire Pipeline (`PATHOGIST all`)
 This subcommand runs the PathOGiST pipeline from start to finish 
 (i.e. distance matrix creation -> correlation clustering -> consensus clustering).
 
 The main input file is a YAML configuration file, which you can create with the command
 ```bash
-pathogist all [path to where you want your config] --new_config
+PATHOGIST all [path to where you want your config] --new_config
 ```
 The configuration file will look like so:
 ```bash
@@ -107,7 +107,7 @@ For example, `mlst_calls.txt` should look something like:
 ```
 The output of PathOGiST is a TSV file containing the file consensus cluster assignment for each sample.
 
-### Correlation Clustering (`pathogist.py correlation`)
+### Correlation Clustering (`PATHOGIST correlation`)
 This subcommand is for clustering bacterial samples based on a distance matrix.
 
 The inputs to correlation clustering are:
@@ -117,10 +117,10 @@ The output is a TSV file containing the cluster assignments of the samples descr
 
 You can run correlation clustering with the following command:
 ```bash
-pathogist.py correlation [distance matrix] [threshold] [output path]
+PATHOGIST correlation [distance matrix] [threshold] [output path]
 ```
 
-### Distance Matrix Creation (`pathogist.py distance`)
+### Distance Matrix Creation (`PATHOGIST distance`)
 This subcommand is used for creating distance matrices from genotyping calls, e.g. SNPs, MLSTs, CNVs, etc.
 Currently, this subcommand is only compatible with SNP calls from Snippy, MLST calls from MentaLiST, and CNV calls from Prince.
 The input is:
@@ -130,10 +130,10 @@ The output is a distance matrix represented as a TSV file.
 
 You can run this subcommand like so:
 ```bash
-pathogist.py distance [path/to/calls_file.tsv] [one of SNP/MLST/CNV] [output path]
+PATHOGIST distance [path/to/calls_file.tsv] [one of SNP/MLST/CNV] [output path]
 ```
 
-### Consensus Clustering (`pathogist.py consensus`)
+### Consensus Clustering (`PATHOGIST consensus`)
 The input for consensus clustering is three files:
 * A text file containing paths to distance matrices in `.tsv` format.
 * A text file containing paths to clustering assignments in `.tsv` format.
@@ -143,7 +143,7 @@ The output is a TSV file containing the cluster assignments of the samples which
 
 You can run consensus clustering with the following command:
 ```bash
-pathogist.py consensus [distances] [clusterings] [fine_clusterings] [output path]
+PATHOGIST consensus [distances] [clusterings] [fine_clusterings] [output path]
 ```
 
 Each line of the input files should correspond to a specific data type, e.g. SNPs, MLSTs, or CNVs.
