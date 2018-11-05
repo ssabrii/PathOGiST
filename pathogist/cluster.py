@@ -680,7 +680,6 @@ def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     Pi = pandas.DataFrame(unlabeled_pi,index=samples,columns=samples)
     for clustering in clusterings:
         Pi = Pi.subtract(clusterings[clustering])
-    Pi = construct_consensus_pi(clusterings,samples)
     D = construct_consensus_D(clusterings,normal_distances,fine_clusterings)
     S = Pi.subtract(D)
     return S
