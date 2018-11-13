@@ -59,6 +59,7 @@ def visualize_clusterings(summary_clusterings,distance=None,is_consensus_sim=Fal
     @param offset: If performing MDS on consensus similarity to determine positions, this is the 
                    smallest dissimilarity value between samples 
     '''
+    plt.figure()
     assert('Consensus' in summary_clusterings.columns.values),\
            'Please ensure your input clusterings contain a consensus clustering.'
     samples = summary_clusterings.index.values
