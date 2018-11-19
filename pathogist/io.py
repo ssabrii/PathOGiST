@@ -45,7 +45,7 @@ def read_snp_calls(calls_path):
     Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
     '''
     calls = {}
-    if calls_path.endswith("txt"):
+    if calls_path.endswith("txt") or calls_path.endswith("dat"):
         ref = {}
         sample = {}
         pos_count = {}
