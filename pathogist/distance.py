@@ -12,6 +12,10 @@ import pysais
 import time
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stdout = logging.StreamHandler(sys.stdout)
+logger.handlers = []
+logger.addHandler(stdout)
 
 def hamming_distance(calls1,calls2):
     '''

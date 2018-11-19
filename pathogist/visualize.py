@@ -1,3 +1,4 @@
+import sys
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -13,6 +14,10 @@ import itertools
 import math
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+stdout = logging.StreamHandler(sys.stdout)
+logger.handlers = []
+logger.addHandler(stdout)
 
 def visualize(distance, name, metadata = None, columns = None, save_path = None):
     '''

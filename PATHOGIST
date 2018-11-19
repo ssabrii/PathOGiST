@@ -19,6 +19,10 @@ import pathogist.distance
 import pathogist.visualize
 
 logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+stdout = logging.StreamHandler(sys.stdout)
+logger.handlers = []
+logger.addHandler(stdout)
 
 def run_all(param):
     '''

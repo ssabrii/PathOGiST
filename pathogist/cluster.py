@@ -17,6 +17,7 @@ import time
 import math
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 stdout = logging.StreamHandler(sys.stdout)
 logger.handlers = []
 logger.addHandler(stdout)
