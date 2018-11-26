@@ -2,6 +2,7 @@ import matplotlib
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.cm as cmx
 import logging
 import pandas 
 import numpy 
@@ -124,14 +125,16 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None,offset=0
         ## Compute the spring layout positions for each sample
         ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
         node_distances = 1/math.sqrt(len(samples)) 
+        graph = networkx.minimum_spanning_tree(graph)
+        '''
         graph = networkx.algorithms.tree.mst.maximum_spanning_tree(graph,
                                                                    weight='weight',
                                                                    algorithm='kruskal',
                                                                    ignore_nan=False)
-        sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
+        '''
+        sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances,iterations=500)
         node_colors = [consensus_clustering[sample] for sample in samples]
-        node_colors = [value/max(node_colors) for value in node_colors]
-        networkx.draw_networkx(graph,node_colors=node_colors,pos=sample_positions,node_size=5,width=0.25,with_labels=False,vmin=0,vmix=1,cmap=plt.cm.Blues)
+        networkx.draw(graph,node_color=node_colors,pos=sample_positions,node_size=30,width=0.25,with_labels=False,vmin=0,vmix=max(node_colors),cmap=cmx.tab20)
         plt.show()
     '''
     elif mode == 'similarity':
