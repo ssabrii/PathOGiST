@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
+import subprocess
 import resource
 import argparse
 import logging
@@ -38,6 +39,63 @@ def run_all(param):
                 print(yaml.YAMLError)
                 sys.exit(1)
 
+        # genotyping software commands
+        genotyping_args = config['genotyping']
+
+        if 'mentalist' in genotyping_args:
+            mentalist_args = genotyping_args['mentalist']
+            for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase','call']:
+                if subcmd in mentalist_args:
+                    subcmd_options = mentalist_args[subcmd]['options']
+                    mentalist_command = ['mentalist',subcmd]
+                    for arg in subcmd_options:
+                        mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
+                    subprocess.call(mentalist_command)
+            mlst_calls_path = mentalist_args['call']['output']
+    
+        if 'kwip' in genotyping_args:
+            kwip_args = genotyping_args['kwip']
+            kwip_path = kwip_args['path']
+            kwip_command = [kwip_path]
+
+            kwip_options = kwip_args['options']
+            for arg in kwip_options:
+                kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
+
+            kwip_flags = kwip_args['flags']
+            for arg in kwip_flags:
+                kwip_command.append('--%s' % arg)
+
+            subprocess.call(kwip_command)
+            
+        if 'prince' in genotyping_args:
+            prince_args = genotyping_args['prince']
+            prince_options = prince_args['options']
+            prince_command = ['prince']
+            for arg in prince_options:
+                prince_command.append('--%s %s' % (arg,prince_options[arg]))
+            subprocess.call(prince_command)
+            cnv_calls_path = prince_options['target_output']
+
+        if 'snippy' in genotyping_args:
+            snippy_args = genotyping_args['snippy']
+            snippy_options = snippy_args['options']
+            snippy_command = ['snippy']
+            for arg in snippy_options:
+                snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
+            subprocess.call(snippy_command)
+
+        if 'spotyping' in genotyping_args:
+            spotyping_args = genotyping_args['spotyping']
+            spotyping_path = spotyping_args['path']
+            spotyping_command = [spotyping_path] 
+            
+            spotyping_options = spotyping_args['options']
+            for arg in spotyping_options:
+                spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+            subprocess.call(spotyping_command)
+
+        '''
         # Make sure the configuration file is formatted correctly 
         distance_keys_set = set(config['distances'].keys())
         genotyping_keys_set = set(config['genotyping'].keys())
@@ -49,12 +107,17 @@ def run_all(param):
             "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
         assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+        '''
         
+        clustering_args = config['clustering']
         # Determine whether to save temporary files, and which directory to do so
+        temp_dir = clustering_args['temp'].rstrip('/')
+        '''
         if config['temp'].rstrip() != "":
             temp_dir = config['temp'].rstrip('/')
         else:
             temp_dir = None
+        '''
 
         # Get genotyping calls
         logger.info('Reading genotyping calls ...')
@@ -62,8 +125,8 @@ def run_all(param):
                                  'MLST': pathogist.io.read_mlst_calls,
                                  'CNV': pathogist.io.read_cnv_calls} 
         calls = {}
-        for genotype in config['genotyping'].keys():
-            calls[genotype] = read_genotyping_calls[genotype](config['genotyping'][genotype]) 
+        for genotype in clustering_args['calls'].keys():
+            calls[genotype] = read_genotyping_calls[genotype](clustering_args['calls'][genotype]) 
         # Create distance matrices from calls
         logger.info('Creating distance matrices ...')
         create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
@@ -80,9 +143,8 @@ def run_all(param):
 
         # Read pre-constructed distance matrices
         logger.info('Reading distance matrices...')
-        for genotype in config['distances'].keys():
-            distances[genotype] = pathogist.io.open_distance_file(config['distances'][genotype]) 
-
+        for genotype in clustering_args['distances'].keys():
+            distances[genotype] = pathogist.io.open_distance_file(clustering_args['distances'][genotype]
         # Match the distance matrices if need be
         distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
 
@@ -93,11 +155,11 @@ def run_all(param):
             
         # dummy variables to make life easier
         genotypes = distances.keys()
-        thresholds = config['thresholds']
-        all_constraints = config['all_constraints'] 
-        output_path = config['output']
-        fine_clusterings = config['fine_clusterings']
-        lp_solver = config['solver']
+        thresholds = clustering_args['thresholds']
+        all_constraints = clustering_args['all_constraints'] 
+        output_path = clustering_args['output']
+        fine_clusterings = clustering_args['fine_clusterings']
+        lp_solver = clustering_args['solver']
 
         for genotype in genotypes:
             distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)

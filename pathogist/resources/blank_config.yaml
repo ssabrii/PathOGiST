@@ -2,42 +2,202 @@
 # PathOGiST configuration file.
 # This configuration file is in YAML file format, release 1.2 (Third Edition).
 # Google yaml for the specification.
-# Do not remove the sections 'genotyping', 'distances', 'thresholds', 'all_constraints', or 'output'.
-# Remove all key-value pairs in the sections 'genotyping' or 'distances' if you want them blank.
+genotyping:
+    mentalist:
+        build_db:
+            options:
+                ## Output file (kmer database)
+                db: 
+                ## kmer size
+                k:
+                ## number of threads to use in parallel
+                threads:
+                ## FASTA files with the MLST scheme
+                fasta_files:
+                ## profile file for known genotypes
+                profile:
+        download_pubmlst:
+            options:
+                ## Output file (kmer database)
+                db: 
+                ## Kmer size
+                k:
+                ## Number of threads used in parallel
+                threads:
+                ## Output folder for the scheme FASTA files
+                output:
+                ## Species name or scheme ID
+                scheme:
+        download_cgmlst:
+            options:
+                ## Output file (kmer database)
+                db: 
+                ## Kmer size
+                k:
+                ## Number of threads used in parallel
+                threads:
+                ## Output folder for the scheme FASTA files
+                output:
+                ## Species name or scheme ID
+                scheme:
+        download_enterobase:
+            options:
+                ## Output file (kmer database)
+                db: 
+                ## Kmer size
+                k:
+                ## Number of threads used in parallel
+                threads:
+                ## Output folder for the scheme FASTA files
+                output:
+                ## Letter identifying which scheme: (S)almonella, (Y)ersinia, or (E)scherichia/Shigella
+                scheme:
+                ## Choose the type: 'cg' or 'wg' for cgMLST or wgMLST, respectively.
+                type:
+        call:
+            options:
+                ## Output file with MLST calls
+                output: 
+                ## kmer database
+                database:
+                ## Maximum number of mutations when looking for novel alleles (type: Int64, default: 6)
+                mutation_threshold:
+                ## Minimum number of times a kmer is seen to be considered present in the sample (solid)
+                kt:
+
+                ## Input TXT file for multiple samples. First column has the sample name, second 
+                ## the FASTQ file.
+                ## Repeat the sample name for samples with more than one file (paired reads, f.i.i)
+                sample_input_file:
+                ## Fastq input files, one per sample, forward reads (or unpaired reads)
+                1:
+                ## Fastq input files, one per sample, reverse readsa
+                2: 
+
+            flags:
+                ## Outputs the results for the original voting algorithm. 
+                ## Remove the comment to activate.
+                #- output_votes
+
+                ## Outputs a FASTA file with the alleles from 'special cases' such as 
+                ## incomplete coverage,
+                ## novel, and multiple alleles. 
+                ## Remove the comment to activate.
+                #- output_special
+    kwip:
+        path: 
+        options:
+            threads:
+            kernel:
+            distance:
+            weights:
+        flags:
+            #- unweighted
+            #- calc_weights
+
+    prince:
+        options:
+            # output file for training data / training used to predict copy numbers for queries
+            boost_output:
+            # output file for query copy number predictions
+            target_output:
+            # VNTR templates. Default is for M.TB
+            templates:
+            # target genome names in a text file
+            target_file:
+            # training genome file names in a text file
+            boosting_file:
+            # Kmer size used during read recruitment
+            k:
+            # copy number of training genome
+            copynumber:
+
+    snippy:
+        options:
+            ## RESOURCES
+            cpus:
+            ram:
+            tmpdir:
+            ## INPUT
+            reference:
+            R1:
+            R2:
+            se:
+            ctgs:
+            peil:
+            bam:
+            targets:
+            subsample:
+            ## OUTPUT
+            outdir:
+            prefix:
+            report:
+            cleanup:
+            rgid:
+            unmapped:
+            ## PARAMETERS
+            mapqual:
+            basequal:
+            mincov:
+            minfrac:
+            minqual:
+            maxsoft:
+            bwaopt:
+            fbopt: 
+
+    spotyping:
+        # Path to SpoTyping.py file
+        path: 
+        options:
+            swift:
+            min:
+            rmin:
+            outdir:
+            output:
+        flags:
+            #- seq
+            #- noQuery
+            #- filter
+            #- sorted
+
+# Do not remove the sections 'calls', 'distances', 'thresholds', 'all_constraints', or 'output'.
+# Remove all key-value pairs in the sections 'calls' or 'distances' if you want them blank.
 # Remove all list items in the section 'fine_clusterings' if you want that blank, too.
-# Keys from 'genotyping' and 'distances' sections should not overlap.
-genotyping: 
-    # Raw genotyping data from which to create distance matrices.
-    # Accepted values are paths to text files containing paths to genotyping files.
-    # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
-    SNP:
-    MLST:
-    CNV:
-distances:
-    # Paths to pre-constructed distance matrices in tsv format.
-    # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
-    # but then they shouldn't appear in the section 'genotyping'.
-    kmer:
-    spoligotyping:
-fine_clusterings:
-    # The genotyping datatypes that are considered to be the "finest".
-    - MLST
-    - SNP
-    - kWIP
-thresholds:
-    # Threshold values for performing correlation clustering on genotyping data types given above.
-    # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
-    SNP: 
-    MLST:
-    CNV: 
-    kmer:
-    spoligotyping:
-# Put the path for the final consensus clustering in tsv format here.
-output:
-# Use all constraints when performing correlation and consensus clustering
-all_constraints: False
-# Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
-solver: pulp
+# Keys from 'calls' and 'distances' sections should not overlap.
+clustering:
+    calls: 
+        # Raw genotyping data from which to create distance matrices.
+        # Accepted values are paths to text files containing paths to genotyping files.
+        # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
+        SNP:
+        MLST:
+        CNV:
+    distances:
+        # Paths to pre-constructed distance matrices in tsv format.
+        # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
+        # but then they shouldn't appear in the section 'genotyping'.
+        kmer:
+        spoligotyping:
+    fine_clusterings:
+        # The genotyping datatypes that are considered to be the "finest".
+        - MLST
+        - SNP
+        - kmer
+    thresholds:
+        # Threshold values for performing correlation clustering on genotyping data types given above.
+        # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
+        SNP: 
+        MLST:
+        CNV: 
+        kmer:
+        spoligotyping:
+    # Put the path for the final consensus clustering in tsv format here.
+    output:
+    # Use all constraints when performing correlation and consensus clustering
+    all_constraints: False
+    # Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
+    solver: pulp
+
 # Directory to save temporary files. Leave blank if you don't want to save them.
 temp: 
 ...
