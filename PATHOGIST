@@ -95,35 +95,29 @@ def run_all(param):
                 spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
             subprocess.call(spotyping_command)
 
-        '''
+        clustering_args = config['clustering']
         # Make sure the configuration file is formatted correctly 
-        distance_keys_set = set(config['distances'].keys())
-        genotyping_keys_set = set(config['genotyping'].keys())
-        threshold_keys_set = set(config['thresholds'].keys())
-        fine_clusterings_set = set(config['fine_clusterings'])
+        distance_keys_set = set(clustering_args['distances'].keys())
+        genotyping_keys_set = set(clustering_args['genotyping'].keys())
+        threshold_keys_set = set(clustering_args['thresholds'].keys())
+        fine_clusterings_set = set(clustering_args['fine_clusterings'])
         assert( (distance_keys_set & genotyping_keys_set) == set() ),\
             "'distances' and 'genotyping' have a key in common."
         assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
             "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
         assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
-        '''
         
-        clustering_args = config['clustering']
         # Determine whether to save temporary files, and which directory to do so
         temp_dir = clustering_args['temp'].rstrip('/')
-        '''
-        if config['temp'].rstrip() != "":
-            temp_dir = config['temp'].rstrip('/')
-        else:
-            temp_dir = None
-        '''
 
         # Get genotyping calls
         logger.info('Reading genotyping calls ...')
         read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
                                  'MLST': pathogist.io.read_mlst_calls,
-                                 'CNV': pathogist.io.read_cnv_calls} 
+                                 'CNV': pathogist.io.read_cnv_calls,
+                                 'spoligo': read_spotyping_calls,
+                                } 
         calls = {}
         for genotype in clustering_args['calls'].keys():
             calls[genotype] = read_genotyping_calls[genotype](clustering_args['calls'][genotype]) 
@@ -131,7 +125,9 @@ def run_all(param):
         logger.info('Creating distance matrices ...')
         create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                     'MLST': pathogist.distance.create_mlst_distance_matrix,
-                                    'CNV': pathogist.distance.create_cnv_distance_matrix} 
+                                    'CNV': pathogist.distance.create_cnv_distance_matrix,
+                                    'spoligo': pathogist.distance.create_spoligo_distance_matrix,
+                                   }
         distances = {}
         for genotype in calls:
             distance_matrix = create_genotype_distance[genotype](calls[genotype])

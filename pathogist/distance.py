@@ -65,6 +65,15 @@ def create_snp_distance_matrix(calls):
     # Assume that the SNP distance matrix is created in the same was as the MLST distance matrix.
     return create_mlst_distance_matrix(calls)
 
+def create_spoligo_distance_matrix(calls):
+    '''
+    Given a dictionary of spoligotyping calls (where samples names are keys to vectors), creates a
+    spoligotype distance matrix represented as a pandas dataframe object.
+    Distance: hamming distance
+    '''
+    # Assume that the spoligo distance matrix is created in the same was as the MLST distance matrix.
+    return create_mlst_distance_matrix(calls)
+
 def match_distance_matrices(distances):
     '''
     Modify a set of distance_matrices so that they all share the same set of samples
