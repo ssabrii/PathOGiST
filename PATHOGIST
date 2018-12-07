@@ -21,6 +21,45 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
+#def run_snippy(forward, reverse, reference, threads, map_qual,min_cov, min_frac, rgid, bwaopt):
+def run_snippy(snippy_command,snippy_options,temp):
+    forward = snippy_options['pe1']
+    sample = re.sub("_1.fastq.gz", "", re.sub(".*/","",forward)) #obtain sample name of read
+    #cwd = os.getcwd() #obtain cwd
+    #outdir=cwd + "/tmp/" + sample #save files in a tmp direction under cwd
+    outdir= temp + '/' + sample #save files in a tmp direction under cwd
+    '''
+    subprocess.run(["snippy", "--force", "--cleanup", "--cpus", str(threads),
+                    "--mapqual", str(map_qual), "--mincov", str(min_cov),
+                    "--minfrac", str(min_frac), "--rgid", rgid, "--bwaopt", bwaopt, 
+                    "--outdir", outdir, "--reference", reference, 
+                    "--pe1", forward, "--pe2", reverse])
+    '''
+    subprocess.run(snippy_command)
+    # filter vcf to obtain only entries with non complex variants
+    with open( outdir+"/snps.vcf" ) as f: # non_complex_vcf input
+        with open( outdir+"/non_complex_snps.vcf", 'w') as g: # non_complex_vcf_output
+            for line in f:
+                entries = line.rstrip().split('\t')
+                if len(entries) == 1: # keep header of vcf file
+                    g.write(line)
+                else:
+                    if len(entries[3]) == len(entries[4]): # keep entries with only same length ref(3) and alt(4) alleles
+                        g.write(line)
+    primitive_vcf = open( outdir+"/snps.primitive.vcf", "w")
+    subprocess.run(["vcfallelicprimitives", "-kg", outdir+"/non_complex_snps.vcf" ], 
+                   stdout = primitive_vcf, env = vcflib_env)
+    primitive_tab = open(outdir+"/snps.primitive.tab", "w")
+    primitive_tab.write(sample+"\n") #append sample to beginning of primitive_tab
+    primitive_tab = open(outdir+"/snps.primitive.tab", "a")
+    #append rest of the tab file to primitive_tab
+    subprocess.run(["snippy-vcf_to_tab", "--gff", outdir + "/reference/ref.gff", "--ref", outdir + "/reference/ref.fa", 
+                    "--vcf", outdir+"/snps.primitive.vcf"],
+                   stdout = primitive_tab)
+    # next iteration remove files we dont need?
+    return outdir+"/snps.primitive.tab" # return the path to tab file used for pathogist distance function
+
+
 def run_all(param):
     '''
     Run the entire PathOGiST pipeline from distance matrix creation to consensus clustering, or create
@@ -39,61 +78,133 @@ def run_all(param):
                 print(yaml.YAMLError)
                 sys.exit(1)
 
+        # Determine whether to save temporary files, and which directory to do so
+        temp_dir = config['temp'].rstrip('/')
+
+        denovo_calls_paths = {}
+        denovo_distances_path = {}
+
         # genotyping software commands
         genotyping_args = config['genotyping']
 
         if 'mentalist' in genotyping_args:
+            logger.info("Running MentaLiST...")
             mentalist_args = genotyping_args['mentalist']
+
+            assert('output' in mentalist_args['call'] and mentalist_args['call'] is not None),\
+                   'Please provide an output path for MentaLiST'
+            denovo_calls_paths['MLST'] = mentalist_args['call']['output']
+
             for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase','call']:
                 if subcmd in mentalist_args:
                     subcmd_options = mentalist_args[subcmd]['options']
                     mentalist_command = ['mentalist',subcmd]
-                    for arg in subcmd_options:
-                        mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
+                    try:
+                        for arg in subcmd_options:
+                            mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
+                    except:
+                        pass
+
+                    if 'flags' in mentalist_args[subcmd]:
+                        subcmd_flags = mentalist_args[subcmd]['flags']
+                        try:
+                            for arg in subcmd_flags:
+                                mentalist_command.append('--%s' % arg)
+                        except:
+                            pass
                     subprocess.call(mentalist_command)
-            mlst_calls_path = mentalist_args['call']['output']
+            logger.info("Finished running MentaLiST.")
     
         if 'kwip' in genotyping_args:
+            logger.info("Running kWIP...")
             kwip_args = genotyping_args['kwip']
             kwip_path = kwip_args['path']
             kwip_command = [kwip_path]
 
+            assert('distance' in kwip_options and kwip_options['distance'] is not None),\
+                   'Please provide an output path for kwip'
+            denovo_distances_paths['kmer'] = kwip_options['distance']
+
             kwip_options = kwip_args['options']
-            for arg in kwip_options:
-                kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
+            try:
+                for arg in kwip_options:
+                    kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
+            except:
+                pass
 
             kwip_flags = kwip_args['flags']
-            for arg in kwip_flags:
-                kwip_command.append('--%s' % arg)
-
+            try:
+                for arg in kwip_flags:
+                    kwip_command.append('--%s' % arg)
+            except:
+                pass
             subprocess.call(kwip_command)
+            logger.info("Finished running kWIP.")
             
         if 'prince' in genotyping_args:
+            logger.info("Running PRINCE...")
             prince_args = genotyping_args['prince']
             prince_options = prince_args['options']
+
+            assert('target_output' in prince_options and 
+                   prince_options['target_output'] is not None),\
+                   "Please provide an output path for prince"
+            denovo_calls_paths['CNV'] = [prince_options['target_output']]
+
             prince_command = ['prince']
-            for arg in prince_options:
-                prince_command.append('--%s %s' % (arg,prince_options[arg]))
+            try:
+                for arg in prince_options:
+                    prince_command.append('--%s %s' % (arg,prince_options[arg]))
+            except:
+                pass
             subprocess.call(prince_command)
-            cnv_calls_path = prince_options['target_output']
+            logger.info("Finished running PRINCE.")
 
         if 'snippy' in genotyping_args:
+            logger.info("Running Snippy...")
             snippy_args = genotyping_args['snippy']
             snippy_options = snippy_args['options']
             snippy_command = ['snippy']
-            for arg in snippy_options:
-                snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
-            subprocess.call(snippy_command)
+            try:
+                for arg in snippy_options:
+                    snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
+            except:
+                pass
+            denovo_calls_paths['SNP'] = run_snippy(snippy_command,snippy_options,temp_dir) 
+            logger.info("Finished running Snippy.")
 
         if 'spotyping' in genotyping_args:
+            logger.info("Running SpoTyping...")
             spotyping_args = genotyping_args['spotyping']
             spotyping_path = spotyping_args['path']
             spotyping_command = [spotyping_path] 
-            
+
             spotyping_options = spotyping_args['options']
-            for arg in spotyping_options:
-                spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+            assert('output' in spotyping_options and spotyping_options['output'] is not None),\
+                'Please provide an output path for SpoTyping'
+            denovo_calls_paths['spoligo'] = spotyping_options['output'] 
+
+            try:
+                for arg in spotyping_options:
+                    spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+            except:
+                pass
+
+            spotyping_flags = spotyping_args['flags']
+            try:
+                for arg in spotyping_flags:
+                    spotyping_command.append('--%s' % arg)
+            except:
+                pass
+
+            spotyping_input = spotyping_args['input']
+            try:
+                spotyping_command.append(spotyping_args['input'])
+            except:
+                pass
+
             subprocess.call(spotyping_command)
+            logger.info("Finished running SpoTyping.")
 
         clustering_args = config['clustering']
         # Make sure the configuration file is formatted correctly 
@@ -104,12 +215,10 @@ def run_all(param):
         assert( (distance_keys_set & genotyping_keys_set) == set() ),\
             "'distances' and 'genotyping' have a key in common."
         assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
-            "Set of keys in 'thresholds' not equal to the set of keys in 'genotyping' and 'distances'."
+            "Set of keys in thresholds not equal to the set of keys in genotyping and distances."
         assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
         
-        # Determine whether to save temporary files, and which directory to do so
-        temp_dir = clustering_args['temp'].rstrip('/')
 
         # Get genotyping calls
         logger.info('Reading genotyping calls ...')
@@ -118,9 +227,13 @@ def run_all(param):
                                  'CNV': pathogist.io.read_cnv_calls,
                                  'spoligo': read_spotyping_calls,
                                 } 
+
         calls = {}
         for genotype in clustering_args['calls'].keys():
             calls[genotype] = read_genotyping_calls[genotype](clustering_args['calls'][genotype]) 
+        for genotype in denovo_calls_paths:
+            calls[genotype] = read_genotype_calls[genotype](denovo_calls_paths)
+
         # Create distance matrices from calls
         logger.info('Creating distance matrices ...')
         create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
@@ -128,7 +241,6 @@ def run_all(param):
                                     'CNV': pathogist.distance.create_cnv_distance_matrix,
                                     'spoligo': pathogist.distance.create_spoligo_distance_matrix,
                                    }
-        distances = {}
         for genotype in calls:
             distance_matrix = create_genotype_distance[genotype](calls[genotype])
             distances[genotype] = distance_matrix
@@ -139,8 +251,12 @@ def run_all(param):
 
         # Read pre-constructed distance matrices
         logger.info('Reading distance matrices...')
+        distances = {}
         for genotype in clustering_args['distances'].keys():
-            distances[genotype] = pathogist.io.open_distance_file(clustering_args['distances'][genotype]
+            distances[genotype] = pathogist.io.open_distance_file(clustering_args['distances'][genotype])
+        for genotype in denovo_distances_path:
+            distances[genotype] = pathogist.io.open_distance_file(denovo_distances_path[genotype])
+
         # Match the distance matrices if need be
         distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
 
@@ -149,7 +265,6 @@ def run_all(param):
             logger.info('Matching distance matrices ...')
             distances = pathogist.distance.match_distance_matrices(distances)
             
-        # dummy variables to make life easier
         genotypes = distances.keys()
         thresholds = clustering_args['thresholds']
         all_constraints = clustering_args['all_constraints'] 
@@ -173,7 +288,7 @@ def run_all(param):
         
         logger.info('Performing consensus clustering...')
 
-        if param.visualize:
+        if clustering_args['visualize']:
             consensus_weight_matrix = pathogist.cluster.construct_consensus_weights(clusterings,
                                                                                     distances,
                                                                                     fine_clusterings)
@@ -189,7 +304,7 @@ def run_all(param):
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file...')
         pathogist.io.output_clustering(summary_clustering,output_path)
-        if param.visualize:
+        if clustering_args['visualize']:
             logger.info("Visualizing clusterings...")
             pathogist.visualize.visualize_clusterings(summary_clustering,consensus_weight_matrix)
 
@@ -297,8 +412,6 @@ def main():
                      help='path to input configuration file, or path to write a new configuration file')
     all_parser.add_argument("-n","--new_config", action="store_true", default=False,
                             help="write a blank configuration file at path given by CONFIG")
-    all_parser.add_argument('-v','--visualize',action="store_true",default=False,
-                            help='Visualize the clusterings.')
 
     # Correlation clustering command line arguments
     corr_parser = subparsers.add_parser(name='correlation', help="perform correlation clustering")
