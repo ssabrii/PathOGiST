@@ -28,7 +28,7 @@ requirements:
     - coincbc >=2.9.9
     - mentalist
     - prince
-    - snippy
+    - snippy ==3.2
 
   test:
     commands:
