@@ -55,13 +55,9 @@ def read_snp_calls(calls_path):
         with open(calls_path,'r') as calls_file:
             for line in calls_file:
                 # We assume that each line of the calls_file is in the form
-                # call_path=sample_name
+                # call_path=sample_name for galaxy tolerance
+                # just call_path is still compatible
                 call_path = line.rstrip().split('=')[0]
-                '''
-                call_path = line.rstrip()
-                sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
-                sample_name = re.sub('.*/', '', sample_name)        
-                '''
                 with open(call_path,'r') as call_file:
                     sample_name=call_file.readline().rstrip()
                     sample[sample_name][-1] = -1
@@ -126,11 +122,6 @@ def read_snp_calls_with_bed(calls_path, bed_path):
                 # We assume that each line of the calls_file is in the form
                 # call_path=sample_name
                 call_path = line.rstrip().split('=')[0]
-                '''
-                call_path = line.rstrip()
-                sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
-                sample_name = re.sub('.*/', '', sample_name)        
-                '''
                 with open(call_path,'r') as call_file:
                     sample_name=call_file.readline().rstrip()
                     sample[sample_name][-1] = -1
