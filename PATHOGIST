@@ -80,12 +80,40 @@ def run_all(param):
 
         # Determine whether to save temporary files, and which directory to do so
         temp_dir = config['temp'].rstrip('/')
+        threads = config['threads']
 
         denovo_calls_paths = {}
         denovo_distances_path = {}
 
         # genotyping software commands
         genotyping_args = config['genotyping']
+
+        forward_reads_list_path = genotyping_args['forward_reads']
+        reverse_reads_list_path = genotyping_args['reverse_reads']
+
+        forward_reads_paths = {}
+        reverse_reads_paths = {}
+
+        with open(forward_reads_list_path,'r') as forwards_file:
+            for line in forwards_file:
+                path = line.rstrip() 
+                # basename of the FASTQ file
+                base = os.path.basename(path)
+                # remove '_1.fastq'
+                accession = os.path.splitext(base)[0].split('_')[0]
+                forward_reads_paths[accession] = path
+
+        with open(reverse_reads_list_path,'r') as reverse_file:
+            for line in reverse_file:
+                path = line.rstrip() 
+                # basename of the FASTQ file
+                base = os.path.basename(path)
+                # remove '_2.fastq' from basename
+                accession = os.path.splitext(base)[0].split('_')[0]
+                reverse_reads_paths[accession] = path
+
+        # Get the accessions
+        accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
 
         if 'mentalist' in genotyping_args:
             logger.info("Running MentaLiST...")
@@ -95,10 +123,13 @@ def run_all(param):
                    'Please provide an output path for MentaLiST'
             denovo_calls_paths['MLST'] = mentalist_args['call']['output']
 
-            for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase','call']:
+            db_path = "%s/mlst.db" % temp_dir
+
+            # Run any one of the database building mentalist subcommands
+            for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
                 if subcmd in mentalist_args:
                     subcmd_options = mentalist_args[subcmd]['options']
-                    mentalist_command = ['mentalist',subcmd]
+                    mentalist_command = ['mentalist',subcmd,'--db %s' % db_path]
                     try:
                         for arg in subcmd_options:
                             mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
@@ -112,37 +143,78 @@ def run_all(param):
                                 mentalist_command.append('--%s' % arg)
                         except:
                             pass
+                    logger.info("Constructing database with command '%s'..." % subcmd)
                     subprocess.call(mentalist_command)
+                    logger.info("Finished constructing database.")
+
+            mentalist_calls_paths = []
+
+            for accession in accessions:
+                call_path = '%s/%s.calls' % (temp_dir,accession)
+                call_command = ['mentalist','call','--db %s' % db_path, '-o %s' % call_path] 
+
+                # Add input reads path to mentalist call command
+                if accession not in forward_reads_paths and accession in reverse_reads_paths:
+                    call_command.append('-1 %s' % reverse_reads_paths[accession])
+                elif accession in forward_reads_paths:
+                    call_command.append('-1 %s' % forward_reads_paths[accession])
+                    if accession in reverse_reads_paths:
+                        call_command.append('-2 %s' % reverse_reads_paths[accession])
+                
+                call_options = mentalist_args['call']['options']
+                for arg in call_options:
+                    call_command.append('--%s %s' % (arg,call_options[arg]))
+
+                call_flags = mentalist_args['call']['flags']
+                for arg in call_flags:
+                    call_command.append('--%s' % call_flags[arg])
+                logger.info("Calling MLSTs on accession %s using MentaLiST..." % accession)
+                subprocess.call(call_command) 
+                logger.info("Finished calling MLSTs on accession %s." % accession)
+            
             logger.info("Finished running MentaLiST.")
     
         if 'kwip' in genotyping_args:
-            logger.info("Running kWIP...")
             kwip_args = genotyping_args['kwip']
-            kwip_path = kwip_args['path']
-            kwip_command = [kwip_path]
 
+            khmer_command = ['load-into-counting.py -x ']
+            khmer_options = genotyping_args['khmer_options']
+
+            try:
+                for arg in khmer_options:
+                    khmer_command.append( '--%s %s' % (arg,khmer_options[arg]) )
+            except:
+                pass
+
+            kwip_path = kwip_args['kwip_path']
+            kwip_command = [kwip_path]
+            kwip_options = kwip_args['kwip_options']
             assert('distance' in kwip_options and kwip_options['distance'] is not None),\
                    'Please provide an output path for kwip'
             denovo_distances_paths['kmer'] = kwip_options['distance']
 
-            kwip_options = kwip_args['options']
             try:
                 for arg in kwip_options:
                     kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
             except:
                 pass
 
-            kwip_flags = kwip_args['flags']
+            kwip_flags = kwip_args['kwip_flags']
             try:
                 for arg in kwip_flags:
                     kwip_command.append('--%s' % arg)
             except:
                 pass
+
+            logger.info("Running khmer (for kWIP)...")
+            subprocess.call(khmer_command)
+            logger.info("Finished running khmer.")
+
+            logger.info("Running kWIP...")
             subprocess.call(kwip_command)
             logger.info("Finished running kWIP.")
             
         if 'prince' in genotyping_args:
-            logger.info("Running PRINCE...")
             prince_args = genotyping_args['prince']
             prince_options = prince_args['options']
 
@@ -157,11 +229,12 @@ def run_all(param):
                     prince_command.append('--%s %s' % (arg,prince_options[arg]))
             except:
                 pass
+
+            logger.info("Running PRINCE...")
             subprocess.call(prince_command)
             logger.info("Finished running PRINCE.")
 
         if 'snippy' in genotyping_args:
-            logger.info("Running Snippy...")
             snippy_args = genotyping_args['snippy']
             snippy_options = snippy_args['options']
             snippy_command = ['snippy']
@@ -170,11 +243,12 @@ def run_all(param):
                     snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
             except:
                 pass
+
+            logger.info("Running Snippy...")
             denovo_calls_paths['SNP'] = run_snippy(snippy_command,snippy_options,temp_dir) 
             logger.info("Finished running Snippy.")
 
         if 'spotyping' in genotyping_args:
-            logger.info("Running SpoTyping...")
             spotyping_args = genotyping_args['spotyping']
             spotyping_path = spotyping_args['path']
             spotyping_command = [spotyping_path] 
@@ -203,6 +277,7 @@ def run_all(param):
             except:
                 pass
 
+            logger.info("Running SpoTyping...")
             subprocess.call(spotyping_command)
             logger.info("Finished running SpoTyping.")
 
