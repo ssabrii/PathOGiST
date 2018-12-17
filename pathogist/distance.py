@@ -58,7 +58,7 @@ def create_cnv_distance_matrix(calls):
 
 def create_snp_distance_matrix(calls):
     '''
-    Given a dictionary of MLST calls (where sample names are keys to a vector), creates an MLST
+    Given a dictionary of SNP calls (where sample names are keys to a vector), creates an SNP
     distance matrix represented as a Pandas Dataframe object.
     Distance: hamming distance
     '''
