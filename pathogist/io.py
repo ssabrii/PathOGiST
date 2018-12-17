@@ -3,6 +3,12 @@ import numpy
 import re
 from collections import defaultdict
 
+def get_sample_name(forward, reverse):
+    fastq_list=[re.sub(".*/","",forward), re.sub(".*/","",reverse)]
+    prefix = os.path.commonprefix(fastq_list)
+    return re.sub("_", "", prefix)
+
+
 def open_clustering_file(path):
     '''
     Reads a clustering file represented in CSV format.
