@@ -20,6 +20,7 @@ requirements:
     - cplex >=12.8
     - matplotlib
     - coincbc >=2.9.9
+    - snippy ==3.2
 
 about:
   home: https://github.com/WGS-TB/PathOGiST

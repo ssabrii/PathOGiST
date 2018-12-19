@@ -21,9 +21,7 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
-def run_snippy(snippy_command,snippy_options,temp):
-    forward = snippy_options['pe1']
-    sample = re.sub("_1.fastq.gz", "", re.sub(".*/","",forward)) #obtain sample name of read
+def run_snippy_on_sample(snippy_command,sample,temp):
     outdir= temp + '/' + sample #save files in a tmp direction under cwd
     subprocess.run(snippy_command)
     # filter vcf to obtain only entries with non complex variants
@@ -34,148 +32,314 @@ def run_snippy(snippy_command,snippy_options,temp):
                 if len(entries) == 1: # keep header of vcf file
                     g.write(line)
                 else:
-                    if len(entries[3]) == len(entries[4]): # keep entries with only same length ref(3) and alt(4) alleles
+                    # keep entries with only same length ref(3) and alt(4) alleles
+                    if len(entries[3]) == len(entries[4]):                         
                         g.write(line)
     primitive_vcf = open( outdir+"/snps.primitive.vcf", "w")
     subprocess.run(["vcfallelicprimitives", "-kg", outdir+"/non_complex_snps.vcf" ], 
-                   stdout = primitive_vcf, env = vcflib_env)
+                   stdout = primitive_vcf, 
+                   env = vcflib_env)
     primitive_tab = open(outdir+"/snps.primitive.tab", "w")
-    primitive_tab.write(sample+"\n") #append sample to beginning of primitive_tab
+    #append sample to beginning of primitive_tab
+    primitive_tab.write(sample+"\n") 
     primitive_tab = open(outdir+"/snps.primitive.tab", "a")
     #append rest of the tab file to primitive_tab
-    subprocess.run(["snippy-vcf_to_tab", "--gff", outdir + "/reference/ref.gff", "--ref", outdir + "/reference/ref.fa", 
-                    "--vcf", outdir+"/snps.primitive.vcf"],
-                   stdout = primitive_tab)
-    # next iteration remove files we dont need?
-    return outdir+"/snps.primitive.tab" # return the path to tab file used for pathogist distance function
+    subprocess.run(["snippy-vcf_to_tab", 
+                    "--gff", 
+                    outdir + "/reference/ref.gff", 
+                    "--ref", 
+                    outdir + "/reference/ref.fa", 
+                    "--vcf", 
+                    outdir+"/snps.primitive.vcf"],
+                    stdout = primitive_tab)
+    # return the path to tab file used for pathogist distance function
+    return outdir+"/snps.primitive.tab" 
 
-def call_genotyping_tools(genotyping_args, temp_dir):
-    denovo_calls_paths = {}
-    denovo_distances_path = {}
+def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
+    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
 
-    if 'mentalist' in genotyping_args:
-        logger.info("Running MentaLiST...")
-        mentalist_args = genotyping_args['mentalist']
+    snippy_options = snippy_args['options']
+    snippy_flags = snippy_args['flags']
+    snippy_calls_paths = []
 
-        assert('output' in mentalist_args['call'] and mentalist_args['call'] is not None),\
-               'Please provide an output path for MentaLiST'
-        denovo_calls_paths['MLST'] = mentalist_args['call']['output']
-
-        for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase','call']:
-            if subcmd in mentalist_args:
-                subcmd_options = mentalist_args[subcmd]['options']
-                mentalist_command = ['mentalist',subcmd]
-                try:
-                    for arg in subcmd_options:
-                        mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
-                except:
-                    pass
-
-                if 'flags' in mentalist_args[subcmd]:
-                    subcmd_flags = mentalist_args[subcmd]['flags']
-                    try:
-                        for arg in subcmd_flags:
-                            mentalist_command.append('--%s' % arg)
-                    except:
-                        pass
-                subprocess.call(mentalist_command)
-        logger.info("Finished running MentaLiST.")
-    
-    if 'kwip' in genotyping_args:
-        logger.info("Running kWIP...")
-        kwip_args = genotyping_args['kwip']
-        kwip_path = kwip_args['path']
-        kwip_command = [kwip_path]
-
-        assert('distance' in kwip_options and kwip_options['distance'] is not None),\
-               'Please provide an output path for kwip'
-        denovo_distances_paths['kmer'] = kwip_options['distance']
-
-        kwip_options = kwip_args['options']
-        try:
-            for arg in kwip_options:
-                kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
-        except:
-            pass
-
-        kwip_flags = kwip_args['flags']
-        try:
-            for arg in kwip_flags:
-                kwip_command.append('--%s' % arg)
-        except:
-            pass
-        subprocess.call(kwip_command)
-        logger.info("Finished running kWIP.")
-            
-    if 'prince' in genotyping_args:
-        logger.info("Running PRINCE...")
-        prince_args = genotyping_args['prince']
-        prince_options = prince_args['options']
-
-        assert('target_output' in prince_options and 
-               prince_options['target_output'] is not None),\
-               "Please provide an output path for prince"
-        denovo_calls_paths['CNV'] = [prince_options['target_output']]
-
-        prince_command = ['prince']
-        try:
-            for arg in prince_options:
-                prince_command.append('--%s %s' % (arg,prince_options[arg]))
-        except:
-            pass
-        subprocess.call(prince_command)
-        logger.info("Finished running PRINCE.")
-
-    if 'snippy' in genotyping_args:
-        logger.info("Running Snippy...")
-        snippy_args = genotyping_args['snippy']
-        snippy_options = snippy_args['options']
-        snippy_command = ['snippy']
+    for accession in accessions:
+        forwards_reads_path = forward_reads_paths[accession]
+        reverse_reads_path = reverse_reads_paths[accession]
+        snippy_command = ['snippy','--force']
+        # Output directory for snippy 
+        snippy_command.append('--outdir %s' % temp_dir)
+        # Output prefix for snippy
+        snippy_command.append('--prefix %s' % accession)
+        # Specify the paths to the forward and reverse reads for snippy
+        snippy_command.append('--pe1 %s' % forward_reads_path)
+        snippy_command.append('--pe2 %s' % reverse_reads_path)
+        snippy_command.append('--cpus %s' threads)
+        # Force overwriting of existing output folder by default
         try:
             for arg in snippy_options:
                 snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
         except:
             pass
-        denovo_calls_paths['SNP'] = run_snippy(snippy_command,snippy_options,temp_dir) 
-        logger.info("Finished running Snippy.")
-
-    if 'spotyping' in genotyping_args:
-        logger.info("Running SpoTyping...")
-        spotyping_args = genotyping_args['spotyping']
-        spotyping_path = spotyping_args['path']
-        spotyping_command = [spotyping_path] 
-
-        spotyping_options = spotyping_args['options']
-        assert('output' in spotyping_options and spotyping_options['output'] is not None),\
-            'Please provide an output path for SpoTyping'
-        denovo_calls_paths['spoligo'] = spotyping_options['output'] 
 
         try:
-            for arg in spotyping_options:
-                spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+            for arg in snippy_flags:
+                snippy_command.append('--%s' % arg)
+        except:
+            pass
+        logger.info("Running Snippy on accession %s..." % accession)
+        snippy_call = run_snippy(snippy_command,accession,temp_dir)
+        snippy_calls_paths.append(snippy_call) 
+    logger.info("Finished running Snippy.")
+    return snippy_calls_paths
+
+def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
+    # Get the accessions
+    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
+    logger.info("Running MentaLiST...")
+
+    # Run any one of the database building mentalist subcommands
+    db_path = "%s/mlst.db" % temp_dir
+    for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
+        if subcmd in mentalist_args:
+            subcmd_options = mentalist_args[subcmd]['options']
+            mentalist_command = ['mentalist',subcmd,'--db %s' % db_path,'--threads %s' threads]
+            try:
+                for arg in subcmd_options:
+                    mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
+            except:
+                pass
+            if 'flags' in mentalist_args[subcmd]:
+                subcmd_flags = mentalist_args[subcmd]['flags']
+                try:
+                    for arg in subcmd_flags:
+                        mentalist_command.append('--%s' % arg)
+                except:
+                    pass
+            logger.info("Constructing database with command '%s'..." % subcmd)
+            subprocess.call(mentalist_command)
+            logger.info("Finished constructing database.")
+
+    # Run the mentalist call subcommand
+    mentalist_calls_paths = [] # the paths to the MLST call files
+    for accession in accessions:
+        call_path = '%s/%s_mlst.call' % (temp_dir,accession)
+        mentalist_calls_paths.append(call_path)
+        call_command = ['mentalist','call']
+        call_command.append('--db %s' % db_path)
+        call_command.append('-o %s' % call_path)
+        call_command.append('--threads %s' % threads)
+
+        # Add input reads path to mentalist call command
+        call_command.append('-1 %s' % forward_reads_paths[accession])
+        call_command.append('-2 %s' % reverse_reads_paths[accession])
+        
+        call_options = mentalist_args['call']['options']
+        for arg in call_options:
+            call_command.append('--%s %s' % (arg,call_options[arg]))
+
+        call_flags = mentalist_args['call']['flags']
+        for arg in call_flags:
+            call_command.append('--%s' % call_flags[arg])
+
+        logger.info("Calling MLSTs on accession %s using MentaLiST..." % accession)
+        subprocess.call(call_command) 
+        logger.info("Finished calling MLSTs on accession %s." % accession)
+
+    logger.info("Finished running MentaLiST.")
+
+    return mentalist_calls_paths
+
+def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
+    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
+    # the paths of the hashes output by khmer
+    hash_paths = []
+
+    for accession in accessions:
+        khmer_command = ['load-into-counting.py','--threads %s' threads, '--force']
+
+        khmer_options = genotyping_args['khmer_options']
+        try:
+            for arg in khmer_options:
+                khmer_command.append( '--%s %s' % (arg,khmer_options[arg]) )
         except:
             pass
 
-        spotyping_flags = spotyping_args['flags']
-        try:
-            for arg in spotyping_flags:
-                spotyping_command.append('--%s' % arg)
-        except:
-            pass
+        # Specify the output path for the hash
+        hash_path = '%s/%s.ct.gz' % (temp_dir,accession)
+        hash_paths.append(hash_path)
+        khmer_command.append(hash_path)
+            
+        # Specify the paths to the forward and reverse reads
+        khmer_command.append(forward_reads[accession])
+        khmer_command.append(reverse_reads[accession])
+        subprocess.call(khmer_command)
 
-        spotyping_input = spotyping_args['input']
-        try:
-            spotyping_command.append(spotyping_args['input'])
-        except:
-            pass
+    kwip_path = kwip_args['kwip_path']
+    kwip_command = [kwip_path]
+    kwip_options = kwip_args['kwip_options']
 
+    # Add the user specified options for kwip
+    try:
+        for arg in kwip_options:
+            kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
+    except:
+        pass
+
+    # Add the user specified flags for kwip
+    kwip_flags = kwip_args['kwip_flags']
+    try:
+        for arg in kwip_flags:
+            kwip_command.append('--%s' % arg)
+    except:
+        pass
+
+    # Add the distance output path
+    kwip_dist_path = '%s/kwip_dist.tsv'
+    kwip_command.append('-d %s' % kwip_dist_path)
+
+    # Specify the paths to the khmer hashes to kwip
+    for hash_path in hash_paths:
+        kwip_command.append(hash_path)
+
+    logger.info("Running kWIP...")
+    subprocess.call(kwip_command)
+    logger.info("Finished running kWIP.")
+    return kwip_dist_path
+
+def run_prince(prince_args,combined_reads_path,threads,temp_dir):
+    prince_options = prince_args['options']
+    calls_path = '%s/%s_cnv.call' % (temp_dir,read_type)
+    prince_command = ['prince', '-tf %s' % combined_reads_list_path, '-to %s' % calls_path]
+    try:
+        for arg in prince_options:
+            prince_command.append('--%s %s' % (arg,prince_options[arg]))
+    except:
+        pass
+    logger.info("Running PRINCE...")
+    subprocess.call(prince_command)
+    logger.info("Finished running PRINCE.")
+    return calls_path
+
+def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
+    logger.info("Running SpoTyping...")
+
+    spotyping_args = genotyping_args['spotyping']
+    spotyping_options = spotyping_args['options']
+    spotyping_path = spotyping_args['path']
+
+    # Add the user specified flags for the SpoTyping command
+    spotyping_flags = spotyping_args['flags']
+    spoligo_calls_paths = []
+
+    for accession in accessions:
+        calls_path = '%s/%s_spotyping.call' % accession 
+        spoligo_calls_paths.append(calls_path)
+
+        # Set up the spotyping command
+        spotyping_command = ['python2', 
+                             spotyping_path, 
+                             '--outdir %s' % temp_dir, 
+                             '--output %s_spotyping.call' % accession,
+                            ] 
+
+        # Add the user specified options for the SpoTyping command
+        for arg in spotyping_options:
+            spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+        for arg in spotyping_flags:
+            spotyping_command.append('--%s' % arg)
+
+        # Specify the path the to the forward reads of the sample for spotyping
+        spotyping_options.append(forward_reads_paths[accession])
+        spotyping_options.append(reverse_reads_paths[accession]) 
+
+        logger.info("Running SpoTyping on accession %s" % accession)
         subprocess.call(spotyping_command)
-        logger.info("Finished running SpoTyping.")
+        logger.info("Finished running SpoTyping on accession %s" % accession)
 
+    logger.info("Finished running SpoTyping.")
+    return spoligo_calls_paths
+
+def combine_reads_paths_lists(forward_reads_list_path,reverse_reads_list_path):
+    # Combine the forward and reverse reads paths lists into a single file
+    combined_reads_list_path = '%s/combined_reads.txt' % temp_dir
+    concat_reads_list_command = 'cat %s %s >> %s' % (forward_reads_list_path,
+                                                     reverse_reads_list_path,
+                                                         combined_reads_path)
+    subprocess.call(concat_reads_list_command)
+    return combined_reads_list_path
+
+def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
+    # Get the accessions
+    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
+    forward_reads_paths = {}
+    reverse_reads_paths = {}
+
+    with open(forward_reads_list_path,'r') as forwards_file:
+        for line in forwards_file:
+            path = line.rstrip() 
+            # basename of the FASTQ file
+            base = os.path.basename(path)
+            # remove '_1.fastq'
+            accession = os.path.splitext(base)[0].split('_')[0]
+            forward_reads_paths[accession] = path
+
+    with open(reverse_reads_list_path,'r') as reverse_file:
+        for line in reverse_file:
+            path = line.rstrip() 
+            # basename of the FASTQ file
+            base = os.path.basename(path)
+            # remove '_2.fastq' from basename
+            accession = os.path.splitext(base)[0].split('_')[0]
+            reverse_reads_paths[accession] = path
+
+    return forward_reads_paths, reverse_reads_paths
+
+def run_genotyping_tools(genotyping_args, threads, temp_dir):
+    forward_reads_list_path = genotyping_args['forward_reads']
+    reverse_reads_list_path = genotyping_args['reverse_reads']
+
+    forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
+                                                                        reverse_reads_list_path) 
+    denovo_calls_paths = {}
+    denovo_distances_paths = {}
+
+    if 'mentalist' in genotyping_args:
+        mentalist_args = genotyping_args['mentalist']
+        denovo_calls_paths['MLST'] = run_mentalist(mentalist_args,
+                                              forward_reads_paths,
+                                                          threads,
+                                                         temp_dir)
+    if 'kwip' in genotyping_args:
+        kwip_args = genotyping_args['kwip']
+        denovo_distances_paths['kmer'] = run_kwip(kwip_args,
+                                              forward_reads,
+                                              reverse_reads,
+                                                    threads,
+                                                   temp_dir)
+    if 'prince' in genotyping_args:
+        prince_args = genotyping_args['prince']
+        denovo_calls_paths['CNV'] = run_prince(prince_args,
+                                             forward_reads,
+                                             reverse_reads,
+                                                   threads,
+                                                  temp_dir)
+    if 'snippy' in genotyping_args:
+        snippy_args = genotyping_args['snippy']
+        denovo_calls_paths['SNP'] = run_snippy(snippy_args,
+                                             forward_reads,
+                                             reverse_reads,
+                                                   threads,
+                                                  temp_dir)
+    if 'spotyping' in genotyping_args:
+        spotyping_args = genotyping_args['spotyping']
+        denovo_calls_paths['spoligo'] = run_spotyping(spotyping_args,
+                                                 forward_reads_paths,
+                                                 reverse_reads_paths,
+                                                            temp_dir)
     denovo_calls_dists_paths = {'distances': denovo_distances_paths,'calls': denovo_calls_paths}
     return denovo_calls_dists_paths
 
-def call_clustering_commands(clustering_args,temp_dir):
+def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir):
     # Make sure the configuration file is formatted correctly 
     distance_keys_set = set(clustering_args['distances'].keys())
     genotyping_keys_set = set(clustering_args['genotyping'].keys())
@@ -296,10 +460,11 @@ def run_all(param):
 
         # Determine whether to save temporary files, and which directory to do so
         temp_dir = config['temp'].rstrip('/')
+        threads = config['threads']
 
         # genotyping software commands
         genotyping_args = config['genotyping']
-        denovo_calls_dists_paths = call_genotyping_tools(genotyping_args,temp_dir)
+        denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,temp_dir)
 
         clustering_args = config['clustering']
         call_clustering_commands(clusterings_args,denovo_calls_dists_paths,temp_dir)
