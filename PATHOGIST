@@ -65,19 +65,19 @@ def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_
     for accession in accessions:
         forwards_reads_path = forward_reads_paths[accession]
         reverse_reads_path = reverse_reads_paths[accession]
-        snippy_command = ['snippy','--force']
+        snippy_command = ['snippy']
         # Output directory for snippy 
-        snippy_command.append('--outdir %s' % temp_dir)
+        snippy_command.extend(['--outdir', temp_dir)
         # Output prefix for snippy
         snippy_command.append('--prefix %s' % accession)
         # Specify the paths to the forward and reverse reads for snippy
-        snippy_command.append('--pe1 %s' % forward_reads_path)
-        snippy_command.append('--pe2 %s' % reverse_reads_path)
-        snippy_command.append('--cpus %s' threads)
+        snippy_command.append(['--pe1', forward_reads_path])
+        snippy_command.append(['--pe2', reverse_reads_path])
+        snippy_command.append(['--cpus', threads])
         # Force overwriting of existing output folder by default
         try:
             for arg in snippy_options:
-                snippy_command.append('--%s %s' % (arg,snippy_options[arg]))
+                snippy_command.extend(['--%s' % arg, snippy_options[arg]])
         except:
             pass
 
@@ -102,12 +102,21 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
     for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
         if subcmd in mentalist_args:
             subcmd_options = mentalist_args[subcmd]['options']
-            mentalist_command = ['mentalist',subcmd,'--db %s' % db_path,'--threads %s' threads]
+            #mentalist_command = ['mentalist',subcmd,'--db %s' % db_path,'--threads %s' % threads]
+            mentalist_command = ['mentalist',subcmd,
+                                 '--db','%s' % db_path,
+                                 '--threads','%s' % threads,
+                                 '--output', temp_dir]
             try:
                 for arg in subcmd_options:
-                    mentalist_command.append('--%s %s' % (arg,subcmd_options[arg])) 
+                    if arg == 'k':
+                        mentalist_command.append('-%s' % arg)
+                    else:
+                        mentalist_command.append('--%s' % arg)
+                    mentalist_command.append('%s' % subcmd_options[arg])
             except:
                 pass
+
             if 'flags' in mentalist_args[subcmd]:
                 subcmd_flags = mentalist_args[subcmd]['flags']
                 try:
@@ -125,22 +134,26 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
         call_path = '%s/%s_mlst.call' % (temp_dir,accession)
         mentalist_calls_paths.append(call_path)
         call_command = ['mentalist','call']
-        call_command.append('--db %s' % db_path)
-        call_command.append('-o %s' % call_path)
-        call_command.append('--threads %s' % threads)
+        call_command.extend(['--db', db_path])
+        call_command.extend(['-o', call_path])
+        call_command.extend(['--threads', threads])
 
         # Add input reads path to mentalist call command
-        call_command.append('-1 %s' % forward_reads_paths[accession])
-        call_command.append('-2 %s' % reverse_reads_paths[accession])
+        call_command.extend(['-1', forward_reads_paths[accession]])
+        call_command.extend(['-2', reverse_reads_paths[accession]])
         
         call_options = mentalist_args['call']['options']
-        for arg in call_options:
-            call_command.append('--%s %s' % (arg,call_options[arg]))
-
+        try:
+            for arg in call_options:
+                call_command.extend(['--%s' % arg, call_options[arg]])
+        except:
+            pass
         call_flags = mentalist_args['call']['flags']
-        for arg in call_flags:
-            call_command.append('--%s' % call_flags[arg])
-
+        try:
+            for arg in call_flags:
+                call_command.append('--%s' % call_flags[arg])
+        except:
+            pass
         logger.info("Calling MLSTs on accession %s using MentaLiST..." % accession)
         subprocess.call(call_command) 
         logger.info("Finished calling MLSTs on accession %s." % accession)
@@ -153,14 +166,13 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
     accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     # the paths of the hashes output by khmer
     hash_paths = []
-
     for accession in accessions:
-        khmer_command = ['load-into-counting.py','--threads %s' threads, '--force']
+        khmer_command = ['load-into-counting.py', '--threads', threads, '--force']
 
         khmer_options = genotyping_args['khmer_options']
         try:
             for arg in khmer_options:
-                khmer_command.append( '--%s %s' % (arg,khmer_options[arg]) )
+                khmer_command.extend(['--%s' % arg, khmer_options[arg]])
         except:
             pass
 
@@ -181,7 +193,7 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
     # Add the user specified options for kwip
     try:
         for arg in kwip_options:
-            kwip_command.append('--%s %s' % (arg,kwip_options[arg]))
+            kwip_command.extend(['--%s' % arg,kwip_options[arg]])
     except:
         pass
 
@@ -195,7 +207,7 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
 
     # Add the distance output path
     kwip_dist_path = '%s/kwip_dist.tsv'
-    kwip_command.append('-d %s' % kwip_dist_path)
+    kwip_command.extend(['-d', kwip_dist_path])
 
     # Specify the paths to the khmer hashes to kwip
     for hash_path in hash_paths:
@@ -209,10 +221,10 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
 def run_prince(prince_args,combined_reads_path,threads,temp_dir):
     prince_options = prince_args['options']
     calls_path = '%s/%s_cnv.call' % (temp_dir,read_type)
-    prince_command = ['prince', '-tf %s' % combined_reads_list_path, '-to %s' % calls_path]
+    prince_command = ['prince', '-tf', combined_reads_list_path, '-to', calls_path]
     try:
         for arg in prince_options:
-            prince_command.append('--%s %s' % (arg,prince_options[arg]))
+            prince_command.extend(['--%s' % arg, prince_options[arg]])
     except:
         pass
     logger.info("Running PRINCE...")
@@ -236,15 +248,14 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
         spoligo_calls_paths.append(calls_path)
 
         # Set up the spotyping command
-        spotyping_command = ['python2', 
-                             spotyping_path, 
-                             '--outdir %s' % temp_dir, 
-                             '--output %s_spotyping.call' % accession,
+        spotyping_command = ['python2', spotyping_path, 
+                             '--outdir', temp_dir, 
+                             '--output', '%s_spotyping.call' % accession,
                             ] 
 
         # Add the user specified options for the SpoTyping command
         for arg in spotyping_options:
-            spotyping_command.append('--%s %s' % (arg,spotyping_options[arg]))
+            spotyping_command.extend(['--%s' % arg, spotyping_options[arg]])
         for arg in spotyping_flags:
             spotyping_command.append('--%s' % arg)
 
@@ -269,8 +280,6 @@ def combine_reads_paths_lists(forward_reads_list_path,reverse_reads_list_path):
     return combined_reads_list_path
 
 def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
-    # Get the accessions
-    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     forward_reads_paths = {}
     reverse_reads_paths = {}
 
@@ -295,8 +304,8 @@ def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
     return forward_reads_paths, reverse_reads_paths
 
 def run_genotyping_tools(genotyping_args, threads, temp_dir):
-    forward_reads_list_path = genotyping_args['forward_reads']
-    reverse_reads_list_path = genotyping_args['reverse_reads']
+    forward_reads_list_path = genotyping_args['input_reads']['forward_reads']
+    reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
 
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
                                                                         reverse_reads_list_path) 
@@ -307,6 +316,7 @@ def run_genotyping_tools(genotyping_args, threads, temp_dir):
         mentalist_args = genotyping_args['mentalist']
         denovo_calls_paths['MLST'] = run_mentalist(mentalist_args,
                                               forward_reads_paths,
+                                              reverse_reads_paths,
                                                           threads,
                                                          temp_dir)
     if 'kwip' in genotyping_args:
@@ -336,6 +346,7 @@ def run_genotyping_tools(genotyping_args, threads, temp_dir):
                                                  forward_reads_paths,
                                                  reverse_reads_paths,
                                                             temp_dir)
+
     denovo_calls_dists_paths = {'distances': denovo_distances_paths,'calls': denovo_calls_paths}
     return denovo_calls_dists_paths
 
@@ -464,7 +475,7 @@ def run_all(param):
 
         # genotyping software commands
         genotyping_args = config['genotyping']
-        denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,temp_dir)
+        denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,threads,temp_dir)
 
         clustering_args = config['clustering']
         call_clustering_commands(clusterings_args,denovo_calls_dists_paths,temp_dir)

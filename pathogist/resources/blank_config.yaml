@@ -3,11 +3,11 @@
 # This configuration file is in YAML file format, release 1.2 (Third Edition).
 # Google yaml for the specification.
 
-# Directory to save temporary files. Leave blank if you don't want to save them.
+# Directory to save temporary files.
 temp: 
 # Number of threads on your computer
 threads:
-# Options for tools to genotype your raw reads
+# Command line options for tools to genotype your raw reads
 genotyping:
     input_reads:
         forward_reads:
@@ -49,7 +49,6 @@ genotyping:
                 ## Minimum number of times a kmer is seen to be considered present in the sample 
                 ## (solid)
                 kt: 10
-
             flags:
                 ## Outputs the results for the original voting algorithm. 
                 #- output_votes
@@ -75,14 +74,12 @@ genotyping:
         kwip_flags:
             #- unweighted
             #- calc_weights
-
     prince:
         options:
             # VNTR templates. Default is for M.TB
             #templates:
             # Kmer size used during read recruitment
             #k:
-
     snippy:
         options:
             # Reference genome. Supports FASTA, GenBank, EMBL (not GFF)
@@ -102,7 +99,6 @@ genotyping:
         flags:
             ## Keep unmapped reads in BAM and write FASTQ.
             #- unmapped
-
     spotyping:
         # Path to SpoTyping.py file
         path: 
@@ -117,7 +113,6 @@ genotyping:
             #- noQuery
             #- filter
             #- sorted
-
 # Do not remove the sections 'calls', 'distances', 'thresholds', 'all_constraints', or 'output'.
 # Remove all key-value pairs in the sections 'calls' or 'distances' if you want them blank.
 # Remove all list items in the section 'fine_clusterings' if you want that blank, too.
@@ -126,7 +121,7 @@ clustering:
     calls: 
         # Raw genotyping data from which to create distance matrices.
         # Accepted values are paths to text files containing paths to genotyping files.
-        # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
+        # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE
         SNP:
         MLST:
         CNV:
@@ -134,20 +129,21 @@ clustering:
         # Paths to pre-constructed distance matrices in tsv format.
         # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
         # but then they shouldn't appear in the section 'genotyping'.
-        kmer:
+        kWIP:
         spoligo:
     fine_clusterings:
         # The genotyping datatypes that are considered to be the "finest".
         - MLST
         - SNP
-        - kmer
+        - kWIP
     thresholds:
-        # Threshold values for performing correlation clustering on genotyping data types given above.
-        # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
+        # Threshold values for performing correlation clustering on genotyping data types given above
+        # Every key appearing in the sections 'genotyping' and 'distances' should appear 
+        # here with a value. 
         SNP: 
         MLST:
         CNV: 
-        kmer:
+        kWIP:
         spoligo:
     # Put the path for the final consensus clustering in tsv format here.
     output:
