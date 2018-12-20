@@ -1,6 +1,7 @@
 import pandas
 import numpy
 import re
+import os
 from collections import defaultdict
 
 def get_sample_name(forward, reverse):
@@ -187,9 +188,13 @@ def read_spotype_calls(calls_path):
     with open(calls_path,'r') as calls_file:
         for line in calls_file:
             values = line.split("\t")
-            sample = values[0]
-        if(len(values[1]) == 44):
-            calls[sample] = values[1]
+            seq = values[0].split("&")
+            forward = seq[0]
+            reverse = seq[1]
+            sample = get_sample_name(forward, reverse)
+            
+            if(len(values[1]) == 43):
+                calls[sample] = values[1]
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of Spoligotype calls."
     return calls
