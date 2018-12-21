@@ -196,14 +196,20 @@ def distance(param):
     distance_matrix = None
     read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
                              'MLST': pathogist.io.read_mlst_calls,
-                             'CNV': pathogist.io.read_cnv_calls} 
+                             'CNV': pathogist.io.read_cnv_calls,
+                             'Spoligotype': pathogist.io.read_spotype_calls} 
     create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                 'MLST': pathogist.distance.create_mlst_distance_matrix,
-                                'CNV': pathogist.distance.create_cnv_distance_matrix}
+                                'CNV': pathogist.distance.create_cnv_distance_matrix,
+                                'Spoligotype': pathogist.distance.create_spotype_distance_matrix}
     if param.bed == "":								
         calls = read_genotyping_calls[param.data_type](param.calls_path)
     else:
-        calls = pathogist.io.read_snp_calls_with_bed(param.calls_path, param.bed )
+        if param.data_type == 'SNP':
+            calls = pathogist.io.read_snp_calls(param.calls_path, param.bed )
+        else:
+            # Output error when bed is used with non SNP data types
+            sys.exit('Bed option is only compatible with SNP genotype files')
     distance_matrix = create_genotype_distance[param.data_type](calls)
     if distance_matrix is not None:
         logger.info("Writing distance matrix ...")
@@ -279,7 +285,7 @@ def main():
     distance_parser.add_argument("calls_path", type=str,
                              help = "path to file containing paths to signal calls "
                                   + "(e.g. MLST calls, CNV calls, etc)")
-    distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP'],
+    distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP','Spoligotype'],
                              help = "genotyping data")
     distance_parser.add_argument("output_path", type=str, help="path to output tsv file")
     distance_parser.add_argument("--bed", type=str, default="", required=False, 

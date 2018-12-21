@@ -18,11 +18,10 @@ def hamming_distance(calls1,calls2):
     Given two numpy 1-dimensional arrays calls1, calls2 of the same shape, returns the hamming distance.
     '''
     return numpy.count_nonzero(calls1 != calls2)
-
+	
 def spoligo_ham_distance(calls1,calls2):
     assert len(calls1) == len(calls2)
     return sum(c1 != c2 for c1, c2 in zip(calls1, calls2))
-
 
 def l1_norm(calls1,calls2):
     '''
@@ -83,7 +82,7 @@ def create_spotype_distance_matrix(calls):
                                        index=samples,columns=samples,dtype=int)
 
     for sample1,sample2 in itertools.combinations(samples,2):
-        distance_matrix[sample1][sample2] = spoligo_ham_distance(calls[sample1],calls[sample2])
+        distance_matrix[sample1][sample2] = hamming_distance(calls[sample1],calls[sample2])
         distance_matrix[sample2][sample1] = distance_matrix[sample1][sample2]
     return distance_matrix
 
