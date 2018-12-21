@@ -82,7 +82,7 @@ def create_spotype_distance_matrix(calls):
                                        index=samples,columns=samples,dtype=int)
 
     for sample1,sample2 in itertools.combinations(samples,2):
-        distance_matrix[sample1][sample2] = spoligo_ham_distance(calls[sample1],calls[sample2])
+        distance_matrix[sample1][sample2] = hamming_distance(calls[sample1],calls[sample2])
         distance_matrix[sample2][sample1] = distance_matrix[sample1][sample2]
     return distance_matrix
 

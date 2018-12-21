@@ -141,9 +141,11 @@ def read_spotype_calls(calls_path):
             forward = seq[0]
             reverse = seq[1]
             sample = get_sample_name(forward, reverse)
-            
+            spoligotype = []
             if(len(values[1]) == 43):
-                calls[sample] = values[1]
+                for char in str(values[1]):
+                    spoligotype.append(int(char))
+                calls[sample] = numpy.array(spoligotype)
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of Spoligotype calls."
     return calls
