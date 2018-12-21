@@ -18,11 +18,10 @@ def hamming_distance(calls1,calls2):
     Given two numpy 1-dimensional arrays calls1, calls2 of the same shape, returns the hamming distance.
     '''
     return numpy.count_nonzero(calls1 != calls2)
-
+	
 def spoligo_ham_distance(calls1,calls2):
     assert len(calls1) == len(calls2)
     return sum(c1 != c2 for c1, c2 in zip(calls1, calls2))
-
 
 def l1_norm(calls1,calls2):
     '''
