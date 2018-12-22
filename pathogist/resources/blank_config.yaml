@@ -63,12 +63,6 @@ genotyping:
             ksize: 32
             # approximate number of unique kmers in the input set
             unique-kmers: 0
-            # Override the automatic FP rate setting for the current script
-            fp-rate: None
-            # maximum amount of memory to use for data structure
-            max-memory-usage: None
-            # Reduce memory usage by using a smaller counter for individual kmers.
-            small-count: False
         kwip_options:
             #weights:
         kwip_flags:
@@ -125,12 +119,12 @@ clustering:
         SNP:
         MLST:
         CNV:
+        spoligotyping:
     distances:
         # Paths to pre-constructed distance matrices in tsv format.
-        # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
-        # but then they shouldn't appear in the section 'genotyping'.
+        # You can also specify SNP, MLST, spoligotypoing and CNV distance matrices here if you 
+        # pre-constructed them, but then they shouldn't appear in the section 'genotyping'.
         kWIP:
-        spoligo:
     fine_clusterings:
         # The genotyping datatypes that are considered to be the "finest".
         - MLST
@@ -144,7 +138,7 @@ clustering:
         MLST:
         CNV: 
         kWIP:
-        spoligo:
+        spoligotyping:
     # Put the path for the final consensus clustering in tsv format here.
     output:
     # Use all constraints when performing correlation and consensus clustering
