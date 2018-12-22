@@ -21,8 +21,7 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
-def run_snippy_on_sample(snippy_command,sample,temp):
-    outdir= temp + '/' + sample #save files in a tmp direction under cwd
+def run_snippy_on_sample(snippy_command,sample,outdir):
     subprocess.run(snippy_command)
     # filter vcf to obtain only entries with non complex variants
     with open( outdir+"/snps.vcf" ) as f: # non_complex_vcf input
@@ -63,21 +62,24 @@ def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_
     snippy_calls_paths = []
 
     for accession in accessions:
-        forwards_reads_path = forward_reads_paths[accession]
+        forward_reads_path = forward_reads_paths[accession]
         reverse_reads_path = reverse_reads_paths[accession]
         snippy_command = ['snippy']
         # Output directory for snippy 
-        snippy_command.extend(['--outdir', temp_dir)
+        outdir = '%s/%s' % (temp_dir,accession)
+        subprocess.run(['mkdir','-p',outdir])
+        snippy_command.extend(['--outdir', outdir])
         # Output prefix for snippy
-        snippy_command.append('--prefix %s' % accession)
+        snippy_command.extend(['--prefix', 'snps'])
         # Specify the paths to the forward and reverse reads for snippy
-        snippy_command.append(['--pe1', forward_reads_path])
-        snippy_command.append(['--pe2', reverse_reads_path])
-        snippy_command.append(['--cpus', threads])
+        snippy_command.extend(['--pe1', forward_reads_path])
+        snippy_command.extend(['--pe2', reverse_reads_path])
+        snippy_command.extend(['--cpus', str(threads)])
+        snippy_command.append('--force')
         # Force overwriting of existing output folder by default
         try:
             for arg in snippy_options:
-                snippy_command.extend(['--%s' % arg, snippy_options[arg]])
+                snippy_command.extend(['--%s' % arg, str(snippy_options[arg])])
         except:
             pass
 
@@ -87,7 +89,7 @@ def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_
         except:
             pass
         logger.info("Running Snippy on accession %s..." % accession)
-        snippy_call = run_snippy(snippy_command,accession,temp_dir)
+        snippy_call = run_snippy_on_sample(snippy_command,accession,outdir)
         snippy_calls_paths.append(snippy_call) 
     logger.info("Finished running Snippy.")
     return snippy_calls_paths
@@ -102,7 +104,6 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
     for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
         if subcmd in mentalist_args:
             subcmd_options = mentalist_args[subcmd]['options']
-            #mentalist_command = ['mentalist',subcmd,'--db %s' % db_path,'--threads %s' % threads]
             mentalist_command = ['mentalist',subcmd,
                                  '--db','%s' % db_path,
                                  '--threads','%s' % threads,
@@ -162,17 +163,17 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
 
     return mentalist_calls_paths
 
-def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
+def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
     accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     # the paths of the hashes output by khmer
     hash_paths = []
     for accession in accessions:
-        khmer_command = ['load-into-counting.py', '--threads', threads, '--force']
+        khmer_command = ['load-into-counting.py', '--threads', str(threads), '--force']
 
-        khmer_options = genotyping_args['khmer_options']
+        khmer_options = kwip_args['khmer_options']
         try:
             for arg in khmer_options:
-                khmer_command.extend(['--%s' % arg, khmer_options[arg]])
+                khmer_command.extend(['--%s' % arg, str(khmer_options[arg])])
         except:
             pass
 
@@ -182,8 +183,8 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
         khmer_command.append(hash_path)
             
         # Specify the paths to the forward and reverse reads
-        khmer_command.append(forward_reads[accession])
-        khmer_command.append(reverse_reads[accession])
+        khmer_command.append(forward_reads_paths[accession])
+        khmer_command.append(reverse_reads_paths[accession])
         subprocess.call(khmer_command)
 
     kwip_path = kwip_args['kwip_path']
@@ -218,9 +219,9 @@ def run_kwip(kwip_args,forward_reads,reverse_reads,threads,temp_dir):
     logger.info("Finished running kWIP.")
     return kwip_dist_path
 
-def run_prince(prince_args,combined_reads_path,threads,temp_dir):
+def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
     prince_options = prince_args['options']
-    calls_path = '%s/%s_cnv.call' % (temp_dir,read_type)
+    calls_path = '%s/CNV.calls' % (temp_dir)
     prince_command = ['prince', '-tf', combined_reads_list_path, '-to', calls_path]
     try:
         for arg in prince_options:
@@ -270,13 +271,14 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
     logger.info("Finished running SpoTyping.")
     return spoligo_calls_paths
 
-def combine_reads_paths_lists(forward_reads_list_path,reverse_reads_list_path):
+def combine_reads_lists(forward_reads_paths,reverse_reads_paths,temp_dir):
+    accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     # Combine the forward and reverse reads paths lists into a single file
     combined_reads_list_path = '%s/combined_reads.txt' % temp_dir
-    concat_reads_list_command = 'cat %s %s >> %s' % (forward_reads_list_path,
-                                                     reverse_reads_list_path,
-                                                         combined_reads_path)
-    subprocess.call(concat_reads_list_command)
+    with open(combined_reads_list_path,'w') as output:
+        for accession in accessions:
+            output.write('%s\n' % forward_reads_paths[accession])
+            output.write('%s\n' % reverse_reads_paths[accession])
     return combined_reads_list_path
 
 def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
@@ -306,9 +308,11 @@ def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
 def run_genotyping_tools(genotyping_args, threads, temp_dir):
     forward_reads_list_path = genotyping_args['input_reads']['forward_reads']
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
-
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
                                                                         reverse_reads_list_path) 
+    combined_reads_list_path = combine_reads_lists(forward_reads_paths,
+                                                   reverse_reads_paths,
+                                                             temp_dir)
     denovo_calls_paths = {}
     denovo_distances_paths = {}
 
@@ -322,22 +326,21 @@ def run_genotyping_tools(genotyping_args, threads, temp_dir):
     if 'kwip' in genotyping_args:
         kwip_args = genotyping_args['kwip']
         denovo_distances_paths['kmer'] = run_kwip(kwip_args,
-                                              forward_reads,
-                                              reverse_reads,
+                                        forward_reads_paths,
+                                        reverse_reads_paths,
                                                     threads,
                                                    temp_dir)
     if 'prince' in genotyping_args:
         prince_args = genotyping_args['prince']
         denovo_calls_paths['CNV'] = run_prince(prince_args,
-                                             forward_reads,
-                                             reverse_reads,
+                                  combined_reads_list_path,
                                                    threads,
                                                   temp_dir)
     if 'snippy' in genotyping_args:
         snippy_args = genotyping_args['snippy']
         denovo_calls_paths['SNP'] = run_snippy(snippy_args,
-                                             forward_reads,
-                                             reverse_reads,
+                                       forward_reads_paths,
+                                       reverse_reads_paths,
                                                    threads,
                                                   temp_dir)
     if 'spotyping' in genotyping_args:

@@ -19,3 +19,4 @@ dependencies:
   - prince
   - snippy ==3.2
   - khmer >=2.0
+  - vcflib
