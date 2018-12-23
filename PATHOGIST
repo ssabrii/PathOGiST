@@ -466,7 +466,7 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
     pathogist.io.output_clustering(summary_clustering,output_path)
     if clustering_args['visualize']:
         logger.info("(PathOGiST) Visualizing clusterings...")
-        pathogist.visualize.visualize_clusterings(summary_clustering,consensus_weight_matrix)
+        pathogist.visualize.visualize_clusterings(summary_clustering,mode='spring')
 
 def run_all(param):
     '''
@@ -581,7 +581,7 @@ def visualize(param):
     elif param.data_type == 'clustering':
         logger.info("(PathOGiST) Visualing clusterings...")
         summary_clustering = pathogist.io.open_clustering_file(param.input)
-        pathogist.visualize.visualize_clusterings(summary_clustering)
+        pathogist.visualize.visualize_clusterings(summary_clustering,mode='spring')
 
 def main():
     MAJOR_VERSION = 1
