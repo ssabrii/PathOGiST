@@ -112,7 +112,7 @@ genotyping:
 # Remove all list items in the section 'fine_clusterings' if you want that blank, too.
 # Keys from 'calls' and 'distances' sections should not overlap.
 clustering:
-    calls: 
+    genotyping: 
         # Raw genotyping data from which to create distance matrices.
         # Accepted values are paths to text files containing paths to genotyping files.
         # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE

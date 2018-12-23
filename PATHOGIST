@@ -36,8 +36,7 @@ def run_snippy_on_sample(snippy_command,sample,outdir):
                         g.write(line)
     primitive_vcf = open( outdir+"/snps.primitive.vcf", "w")
     subprocess.run(["vcfallelicprimitives", "-kg", outdir+"/non_complex_snps.vcf" ], 
-                   stdout = primitive_vcf, 
-                   env = vcflib_env)
+                   stdout = primitive_vcf) 
     primitive_tab = open(outdir+"/snps.primitive.tab", "w")
     #append sample to beginning of primitive_tab
     primitive_tab.write(sample+"\n") 
@@ -89,12 +88,13 @@ def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_
                 snippy_command.append('--%s' % arg)
         except:
             pass
-        logger.info("Running Snippy on accession %s..." % accession)
+        logger.info("(PathOGiST) Running Snippy on sample %s..." % accession)
         # Create the output directory first
         subprocess.run(['mkdir','-p',outdir])
         snippy_call = run_snippy_on_sample(snippy_command,accession,outdir)
         snippy_calls_paths.append(snippy_call) 
-    logger.info("Finished running Snippy.")
+        logger.info("(PathOGiST) Finished running Snippy on sample %s." % accession)
+    logger.info("(PathOGiST) Finished running Snippy.")
     return snippy_calls_paths
 
 def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
@@ -158,17 +158,17 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
                 call_command.append('--%s' % call_flags[arg])
         except:
             pass
-        logger.info("PathOGiST: Calling MLSTs on samples %s using MentaLiST..." % accession)
+        logger.info("(PathOGiST) Calling MLSTs on samples %s using MentaLiST..." % accession)
         subprocess.call(call_command) 
-        logger.info("PathOGiST: Finished calling MLSTs on samples %s." % accession)
-    logger.info("PathOGiST: Finished running MentaLiST.")
+        logger.info("(PathOGiST) Finished calling MLSTs on sample %s." % accession)
+    logger.info("(PathOGiST) Finished running MentaLiST.")
     return mentalist_calls_paths
 
 def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
     accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     # the paths of the hashes output by khmer
     hash_paths = []
-    logger.info("PathOGiST: Building k-mer countgraphs using khmer...")
+    logger.info("(PathOGiST) Building k-mer countgraphs using khmer...")
     for accession in accessions:
         khmer_command = ['load-into-counting.py', '--threads', str(threads), '--force']
 
@@ -187,10 +187,10 @@ def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir)
         # Specify the paths to the forward and reverse reads
         khmer_command.append(forward_reads_paths[accession])
         khmer_command.append(reverse_reads_paths[accession])
-        logger.info("PathOGiST: Building k-mer countgraph for sample %s" % accession)
+        logger.info("(PathOGiST) Building k-mer countgraph for sample %s" % accession)
         subprocess.call(khmer_command)
-        logger.info("PathOGiST: Finished building k-mer countgraph for sample %s" % accession)
-    logger.info("PathOGiST: Finished building k-mer countgraphs for all samples.")
+        logger.info("(PathOGiST) Finished building k-mer countgraph for sample %s" % accession)
+    logger.info("(PathOGiST) Finished building k-mer countgraphs for all samples.")
 
     kwip_path = kwip_args['kwip_path']
     kwip_command = [kwip_path]
@@ -219,9 +219,9 @@ def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir)
     for hash_path in hash_paths:
         kwip_command.append(hash_path)
 
-    logger.info("PathOGiST: Running kWIP...")
+    logger.info("(PathOGiST) Running kWIP...")
     subprocess.call(kwip_command)
-    logger.info("PathOGiST: Finished running kWIP.")
+    logger.info("(PathOGiST) Finished running kWIP.")
     return kwip_dist_path
 
 def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
@@ -233,14 +233,13 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
             prince_command.extend(['--%s' % arg, prince_options[arg]])
     except:
         pass
-    logger.info("PathOGiST: Finding CNVs using PRINCE...")
+    logger.info("(PathOGiST) Finding CNVs using PRINCE...")
     subprocess.call(prince_command)
-    logger.info("PathOGiST: Finished running PRINCE.")
+    logger.info("(PathOGiST) Finished running PRINCE.")
     return calls_path
 
 def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
-
-    spotyping_args = genotyping_args['spotyping']
+    accessions = set(forward_reads.keys()).union(reverse_reads.keys())
     spotyping_options = spotyping_args['options']
     spotyping_path = spotyping_args['path']
 
@@ -248,9 +247,9 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
     spotyping_flags = spotyping_args['flags']
     spoligo_calls_paths = []
 
-    logger.info("PathOGiST: Inferring spoligotyping using SpoTyping...")
+    logger.info("(PathOGiST) Inferring spoligotyping using SpoTyping...")
     for accession in accessions:
-        calls_path = '%s/%s_spotyping.call' % accession 
+        calls_path = '%s/%s_spotyping.call' % (temp_dir,accession) 
         spoligo_calls_paths.append(calls_path)
 
         # Set up the spotyping command
@@ -260,19 +259,24 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
                             ] 
 
         # Add the user specified options for the SpoTyping command
-        for arg in spotyping_options:
-            spotyping_command.extend(['--%s' % arg, spotyping_options[arg]])
-        for arg in spotyping_flags:
-            spotyping_command.append('--%s' % arg)
-
+        try:
+            for arg in spotyping_options:
+                spotyping_command.extend(['--%s' % arg, spotyping_options[arg]])
+        except:
+            pass
+        try:
+            for arg in spotyping_flags:
+                spotyping_command.append('--%s' % arg)
+        except:
+            pass
         # Specify the path the to the forward reads of the sample for spotyping
-        spotyping_options.append(forward_reads_paths[accession])
-        spotyping_options.append(reverse_reads_paths[accession]) 
+        spotyping_command.append(forward_reads[accession])
+        spotyping_command.append(reverse_reads[accession]) 
 
-        logger.info("PathOGiST: Running SpoTyping on accession %s" % accession)
+        logger.info("(PathOGiST) Running SpoTyping on accession %s" % accession)
         subprocess.call(spotyping_command)
-        logger.info("PathOGiST: Finished running SpoTyping on accession %s" % accession)
-    logger.info("PathOGiST: Finished running SpoTyping.")
+        logger.info("(PathOGiST) Finished running SpoTyping on accession %s" % accession)
+    logger.info("(PathOGiST) Finished running SpoTyping.")
     return spoligo_calls_paths
 
 def combine_reads_lists(forward_reads_paths,reverse_reads_paths,temp_dir):
@@ -369,24 +373,26 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
         "Set of keys in thresholds not equal to the set of keys in genotyping and distances."
     assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
         "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+
+    denovo_calls_paths = denovo_calls_dists_paths['calls']
+    denovo_distances_paths = denovo_calls_dists_paths['distances']
         
     # Get genotyping calls
-    logger.info('PathOGiST: Reading genotyping calls...')
+    logger.info('(PathOGiST) Reading genotyping calls...')
     read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
                              'MLST': pathogist.io.read_mlst_calls,
                              'CNV': pathogist.io.read_cnv_calls,
-                             'spoligotyping': read_spotyping_calls,
+                             'spoligotyping': pathogist.io.read_spotype_calls,
                             } 
-
     calls = {}
-    for genotype in clustering_args['calls'].keys():
-        calls[genotype] = read_genotyping_calls[genotype](clustering_args['calls'][genotype]) 
+    for genotype in clustering_args['genotyping'].keys():
+        calls[genotype] = read_genotyping_calls[genotype](clustering_args['genotyping'][genotype]) 
     for genotype in denovo_calls_paths:
         calls[genotype] = read_genotype_calls[genotype](denovo_calls_paths)
-    logger.info('PathOGiST: Finished reading genotyping calls.')
+    logger.info('(PathOGiST) Finished reading genotyping calls.')
 
     # Create distance matrices from calls
-    logger.info('PathOGiST: Creating distance matrices...')
+    logger.info('(PathOGiST) Creating distance matrices...')
     create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                 'MLST': pathogist.distance.create_mlst_distance_matrix,
                                 'CNV': pathogist.distance.create_cnv_distance_matrix,
@@ -397,24 +403,24 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
         distances[genotype] = distance_matrix
         if temp_dir is not None:
             dist_output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
-            logger.info("PathOGiST: Saving %s distance matrix at %s..." % (genotype,dist_output_path)) 
+            logger.info("(PathOGiST) Saving %s distance matrix at %s..." % (genotype,dist_output_path)) 
             pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
-    logger.info("PathOGiST: Finished creating distance matrices.")
+    logger.info("(PathOGiST) Finished creating distance matrices.")
 
     # Read pre-constructed distance matrices
-    logger.info('PathOGiST: Reading distance matrices...')
+    logger.info('(PathOGiST) Reading distance matrices...')
     distances = {}
     for genotype in clustering_args['distances'].keys():
         distances[genotype] = pathogist.io.open_distance_file(clustering_args['distances'][genotype])
     for genotype in denovo_distances_path:
         distances[genotype] = pathogist.io.open_distance_file(denovo_distances_path[genotype])
-    logger.info('PathOGiST: Finished creating distance matrices.')
+    logger.info('(PathOGiST) Finished creating distance matrices.')
 
     # Match the distance matrices if need be
     distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
 
     if (len(set(distance_matrix_samples)) > 1):
-        logger.info('PathOGiST: WARNING, different samples described by distance matrices.')
+        logger.info('(PathOGiST) WARNING, different samples described by distance matrices.')
         logger.info('Only samples that are contained in all distance matrices will be clustered.')
         distances = pathogist.distance.match_distance_matrices(distances)
         
@@ -430,7 +436,7 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
 
     clusterings = {}
     for genotype in genotypes:
-        logger.info('PathOGiST: Clustering samples based on %s data...' % genotype)
+        logger.info('(PathOGiST) Clustering samples based on %s data...' % genotype)
         clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
                                                    all_constraints,solver=lp_solver)     
         clusterings[genotype] = clustering
@@ -439,7 +445,7 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
             logger.info("Saving %s clustering at %s..." % (genotype,cluster_output_path)) 
             pathogist.io.output_clustering(clustering,cluster_output_path)
     
-    logger.info('PathOGiST: Finding consensus clustering...')
+    logger.info('(PathOGiST) Finding consensus clustering...')
 
     if clustering_args['visualize']:
         consensus_weight_matrix = pathogist.cluster.construct_consensus_weights(clusterings,
@@ -455,13 +461,12 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
                                                        weight_matrix=consensus_weight_matrix,
                                                        solver=lp_solver)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
-    logger.info("PathOGiST: Finished consensus clustering.") 
-    logger.info('PathOGiST: Writing clusterings to file...')
+    logger.info("(PathOGiST) Finished consensus clustering.") 
+    logger.info('(PathOGiST) Writing clusterings to file...')
     pathogist.io.output_clustering(summary_clustering,output_path)
     if clustering_args['visualize']:
-        logger.info("PathOGiST: Visualizing clusterings...")
+        logger.info("(PathOGiST) Visualizing clusterings...")
         pathogist.visualize.visualize_clusterings(summary_clustering,consensus_weight_matrix)
-    logger.info("PathOGiST: All done.")
 
 def run_all(param):
     '''
@@ -490,18 +495,19 @@ def run_all(param):
         denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,threads,temp_dir)
 
         clustering_args = config['clustering']
-        call_clustering_commands(clusterings_args,denovo_calls_dists_paths,temp_dir)
+        call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir)
+        logger.info("(PathOGiST) All done.")
 
 def correlation(param):
-    logger.info("PathOGiST: Opening distance matrix...")
+    logger.info("(PathOGiST) Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
-    logger.info("PathOGiST: Creating and solving correlation clustering problem ... ")
+    logger.info("(PathOGiST) Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints)
-    logger.info("PathOGiST: Outputting clustering...")
+    logger.info("(PathOGiST) Outputting clustering...")
     pathogist.io.output_clustering(clustering,param.output_path)
 
 def consensus(param):
-    logger.info("PathOGiST: Reading distance matrices ...")
+    logger.info("(PathOGiST) Reading distance matrices ...")
     distances = collections.OrderedDict()
     with open(param.distance_matrices,'r') as file:
         for line in file:
@@ -518,7 +524,7 @@ def consensus(param):
         assert( len(rows1) == len(rows2) )
         assert( rows1 == rows2 )
 
-    logger.info("PathOGiST: Getting clusterings ...")
+    logger.info("(PathOGiST) Getting clusterings ...")
     clustering_vectors = collections.OrderedDict()
     clusterings = collections.OrderedDict()
     with open(param.clusterings,'r') as file:
@@ -536,20 +542,20 @@ def consensus(param):
         assert( len(rows1) == len(rows2) )
         assert( rows1 == rows2 )
 
-    logger.info("PathOGiST: Getting other metadata ...")
+    logger.info("(PathOGiST) Getting other metadata ...")
     fine_clusterings = []
     with open(param.fine_clusterings,'r') as file:
         for line in file:
             fine_clusterings.append( line.rstrip() )
-    logger.info("PathOGiST: Creating and solving consensus clustering problem ...")
+    logger.info("(PathOGiST) Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
                                                                      clusterings)
-    logger.info("PathOGiST: Writing clusterings to file ...")
+    logger.info("(PathOGiST) Writing clusterings to file ...")
     pathogist.io.output_clustering(summary_clustering,param.output_path)
 
 def distance(param):
-    logger.info("PathOGiST: Creating distance matrix ...")
+    logger.info("(PathOGiST) Creating distance matrix ...")
     distance_matrix = None
     read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
                              'MLST': pathogist.io.read_mlst_calls,
@@ -563,17 +569,17 @@ def distance(param):
         calls = pathogist.io.read_snp_calls_with_bed(param.calls_path, param.bed )
     distance_matrix = create_genotype_distance[param.data_type](calls)
     if distance_matrix is not None:
-        logger.info("PathOGiST: Writing distance matrix ...")
+        logger.info("(PathOGiST) Writing distance matrix ...")
         pathogist.io.write_distance_matrix(distance_matrix,param.output_path)
-        logger.info("PathOGiST: Distance matrix creation complete!")
+        logger.info("(PathOGiST) Distance matrix creation complete!")
 
 def visualize(param): 
     if param.data_type == 'distances':
-        logger.info("PathOGiST: Visualizing distance matrix ...")
+        logger.info("(PathOGiST) Visualizing distance matrix ...")
         distance_matrix = pathogist.io.open_distance_file(param.input)
         pathogist.visualize.visualize(distance_matrix,param.sample_name)
     elif param.data_type == 'clustering':
-        logger.info("PathOGiST: Visualing clusterings...")
+        logger.info("(PathOGiST) Visualing clusterings...")
         summary_clustering = pathogist.io.open_clustering_file(param.input)
         pathogist.visualize.visualize_clusterings(summary_clustering)
 
