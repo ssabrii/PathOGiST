@@ -7,9 +7,11 @@ import sys
 import gc
 import random
 import itertools
+'''
 import cplex
 import cplex.exceptions
 from cplex.exceptions import CplexError
+'''
 import pandas
 import pulp
 from threading import Thread
@@ -89,6 +91,7 @@ def processProblemWithPuLP(weights, all_constraints):
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
+'''
 def processProblem(Distances, all_constraints):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
@@ -131,6 +134,7 @@ def processProblem(Distances, all_constraints):
     print(my_prob.solution.get_objective_value())
     logger.debug("Finished CPLEX solving.")
     return solMatrix
+'''
 
 def populateByNonZero(prob, Distances):
     logger.debug("Creating problem instance with all constraints")
@@ -422,11 +426,14 @@ def correlation(distance_matrix, threshold, all_constraints=False,solver='pulp')
     samples = distance_matrix.columns.values
     weight_matrix = threshold - distance_matrix
     logger.info("Solving instance for threshold value " + str(threshold) + " ...")
+    '''
     if solver == 'cplex':
         sol_matrix = processProblem(weight_matrix.values, all_constraints)
         if not sol_matrix:
             raise CplexError
-    elif solver == 'pulp':
+    '''
+    #elif solver == 'pulp':
+    if solver == 'pulp':
         sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints)
     else:
         print("Error: unsupported solver %s" % (solver))
@@ -628,6 +635,31 @@ def cluster_vector_to_matrix(cluster_vector):
 
     return cluster_matrix
 
+def normalize_distances(distances):
+    '''
+    Normalize input distance matrices
+    '''
+    normal_distances = {}
+    for clustering in distances:
+        max_value = numpy.amax(distances[clustering])
+        normal_distances[clustering] = distances[clustering]/max_value
+    return normal_distances
+
+def construct_consensus_D(clusterings,normal_distances,fine_clusterings):
+    '''
+    Construct the D matrix as described in the document describing consensus clustering.
+    '''
+    samples = clusterings[list(clusterings.keys())[0]].columns.values
+    num_samples = len(samples)
+    D = pandas.DataFrame(numpy.zeros(shape=(num_samples,num_samples),dtype=float),
+                         index=samples,columns=samples)
+    for sample1,sample2 in itertools.combinations(samples,2):
+        for clustering in normal_distances:
+            if clusterings[clustering][sample1][sample2] == 0 or clustering in fine_clusterings:
+                D[sample1][sample2] += normal_distances[clustering][sample1][sample2]
+                D[sample2][sample1] = D[sample1][sample2]
+    return D
+
 def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     '''
     @parameter clustering_vectors: dictionary of pandas dataframe representing clusterings as vectors
@@ -639,10 +671,7 @@ def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     '''
     clusterings = {key: cluster_vector_to_matrix(clustering_vectors[key]) 
                    for key in clustering_vectors.keys()}
-    normal_distances = {}
-    for clustering in distances:
-        max_value = numpy.amax(distances[clustering])
-        normal_distances[clustering] = distances[clustering]/max_value
+    normal_distances = normalize_distances(distances)
     # now construct the Pi and D matrices
     samples = clusterings[list(clusterings.keys())[0]].columns.values
     num_samples = len(samples)
@@ -651,13 +680,7 @@ def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     Pi = pandas.DataFrame(unlabeled_pi,index=samples,columns=samples)
     for clustering in clusterings:
         Pi = Pi.subtract(clusterings[clustering])
-    D = pandas.DataFrame(numpy.zeros(shape=(num_samples,num_samples),dtype=float),
-                         index=samples,columns=samples)
-    for sample1,sample2 in itertools.combinations(samples,2):
-        for clustering in normal_distances:
-            if clusterings[clustering][sample1][sample2] == 0 or clustering in fine_clusterings:
-                D[sample1][sample2] += normal_distances[clustering][sample1][sample2]
-                D[sample2][sample1] = D[sample1][sample2]
+    D = construct_consensus_D(clusterings,normal_distances,fine_clusterings)
     S = Pi.subtract(D)
     return S
 
@@ -679,11 +702,14 @@ def consensus(distances,clusterings,fine_clusterings,weight_matrix=None,all_cons
     if weight_matrix is None:
         weight_matrix = construct_consensus_weights(clusterings,distances,fine_clusterings)
     samples = weight_matrix.columns.values
+    '''
     if solver == 'cplex':
         sol_matrix = processProblem(weight_matrix.values,all_constraints)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
+    '''
+    if solver == 'pulp':
         sol_matrix = processProblemWithPuLP(weight_matrix.values,all_constraints)
     else:
         print("Error: unsupported solver %s" % (solver))
