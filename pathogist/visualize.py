@@ -51,8 +51,7 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-#def visualize_clusterings(summary_clusterings,distance=None,is_consensus_sim=False,offset=0.001):
-def visualize_clusterings(summary_clusterings,mode="spring",matrix=None,offset=0.001):
+def visualize_clusterings(summary_clusterings,mode="spring",matrix=None):
     '''
     Visualize the consensus clustering and correlation clusterings.
     @param summary_clusterings: A Pandas Dataframe where the index is the sample names, columns are
@@ -60,16 +59,10 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None,offset=0
     @param mode: method to visualize the clusterings.
                  Options:
                  - spring: Spring layout. Does not require `matrix` parameter. `offset` is not used.
-                 - similarity: Use similarity matrix to determine positions based
-                           on MDS algorithm. Requires `matrix` parameter. `offset` parameter used. 
-                 - distances: Use distance matrix to determine position based on MDS algorithm. 
-                           Requires `matrix` parameter. `offset` not used.
-                 - tree: Represent clusters as trees and use spring layout to determine vertex position.
-                         Requires `matrix` parameter. 
+                 - tree: Represent clusters as trees and use spring layout to determine vertex 
+                         position. Requires `matrix` parameter. 
     @param matrix: A Pandas Dataframe of the similarity matrix from the consensus clustering step of 
                    the problem
-    @param offset: If performing MDS on consensus similarity to determine positions, this is the 
-                   smallest dissimilarity value between samples 
     '''
     plt.figure()
     assert('Consensus' in summary_clusterings.columns.values),\
@@ -83,120 +76,70 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None,offset=0
     graph = networkx.Graph() 
     for sample in samples:
         graph.add_node(samples.index(sample))
+
     if mode == 'spring':
-        '''
         consensus_clustering = summary_clusterings['Consensus']
         num_clusters = numpy.amax(consensus_clustering.values)
         ## Add an edge between samples that are in the same cluster
         for cluster in range(1,num_clusters+1):
             cluster_samples = consensus_clustering.index[consensus_clustering == cluster].tolist()
-        '''
-        for sample1,sample2 in itertools.combinations(samples,2):
-            if mode == 'spring':
-                graph.add_edge(sample1,sample2)
-            else:
-                graph.add_edge(sample1,sample2,weight=matrix[sample1][sample2])
+            for sample1,sample2 in itertools.combinations(cluster_samples,2):
+                graph.add_edge(samples.index(sample1),samples.index(sample2))
         ## Compute the spring layout positions for each sample
         ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
-        node_distances = 1/math.sqrt(len(samples)) 
-        if mode == 'tree':
-            graph = networkx.algorithms.tree.mst.maximum_spanning_tree(graph,
-                                                                       weight='weight',
-                                                                       algorithm='kruskal',
-                                                                       ignore_nan=False)
+        node_distances = 4/math.sqrt(len(samples)) 
         sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances)
+
+        # Visualize all of the clusterings based on the spring layout
+        clustering_names = summary_clusterings.columns.values.tolist()
+        num_subplots = len(clustering_names)
+        num_rows = int(math.ceil(num_subplots/2))
+        num_cols = 2
+        for clustering_index in range(0,num_subplots):
+            subplot_index = clustering_index + 1
+            ax = plt.subplot(num_rows,num_cols,subplot_index)
+            clustering_name = clustering_names[clustering_index] 
+            graph = networkx.Graph()
+            for sample in samples:
+                graph.add_node(samples.index(sample))
+            clustering = summary_clusterings[clustering_name]
+            num_clusters = numpy.amax(clustering.values)
+            for cluster in range(1,num_clusters+1):
+                cluster_samples = clustering.index[clustering == cluster].tolist()
+                for sample1,sample2 in itertools.combinations(cluster_samples,2):
+                    graph.add_edge(samples.index(sample1),samples.index(sample2))
+            ax.set_title("%s Clustering" % clustering_name)
+            networkx.draw_networkx(graph,
+                                   pos=sample_positions,
+                                   node_size=5,
+                                   width=0.25,
+                                   with_labels=False)
+        plt.show()
     elif mode == 'tree':
-        '''
-        consensus_clustering = summary_clusterings['Consensus']
-        num_clusters = numpy.amax(consensus_clustering.values)
-        ## Add an edge between samples that are in the same cluster
-        for cluster in range(1,num_clusters+1):
-            cluster_samples = consensus_clustering.index[consensus_clustering == cluster].tolist()
-        '''
         consensus_clustering = summary_clusterings['Consensus']
         for sample1,sample2 in itertools.combinations(samples,2):
-            graph.add_edge(samples.index(sample1),samples.index(sample2),weight=matrix[sample1][sample2])
-            '''
-            if mode == 'spring':
-                graph.add_edge(sample1,sample2)
-            else:
-                graph.add_edge(samples.index(sample1),samples.index(sample2),weight=matrix[sample1][sample2])
-            '''
+            graph.add_edge(samples.index(sample1),
+                           samples.index(sample2),
+                           weight=matrix[sample1][sample2])
         ## Compute the spring layout positions for each sample
         ### networkx default distance between nodes is 1/sqrt(N), where N is the number of vertices
-        node_distances = 1/math.sqrt(len(samples)) 
+        node_dists = 1/math.sqrt(len(samples)) 
         graph = networkx.minimum_spanning_tree(graph)
-        '''
-        graph = networkx.algorithms.tree.mst.maximum_spanning_tree(graph,
-                                                                   weight='weight',
-                                                                   algorithm='kruskal',
-                                                                   ignore_nan=False)
-        '''
-        sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_distances,iterations=500)
+        sample_positions = networkx.spring_layout(graph,dim=2,scale=1,k=node_dists,iterations=500)
         node_colors = [consensus_clustering[sample] for sample in samples]
-        networkx.draw(graph,node_color=node_colors,pos=sample_positions,node_size=30,width=0.25,with_labels=False,vmin=0,vmix=max(node_colors),cmap=cmx.tab20)
+        networkx.draw(graph,
+                      node_color=node_colors,
+                      pos=sample_positions,
+                      node_size=30,
+                      width=0.25,
+                      with_labels=False,
+                      vmin=0,
+                      vmix=max(node_colors),
+                      cmap=cmx.tab20)
         plt.show()
-    '''
-    elif mode == 'similarity':
-        # Turn the consensus clustering similarity matrix into a dissimilarity matrix by subtracting
-        # by the largest similarity value, and multiplying by -1
-        # Minimum dissimilarity between two different samples
-        max_similarity = numpy.amax(distance_matrix.values)
-        dissimilarity_matrix = -1*(distance_matrix - max_similarity) + offset 
-        assert(dissimilarity_matrix is not None)
-        # make sure the diagonal elements are still zero
-        numpy.fill_diagonal(dissimilarity_matrix.values,0)
-        assert(dissimilarity_matrix is not None)
-        # sort the index and columns of the dissimilarity matrix
-        dissimilarity_matrix.sort_index(axis=1,inplace=True)
-        dissimilarity_matrix.sort_index(axis=0,inplace=True)
-        # get the sample names
-        samples = sorted(dissimilarity_matrix.index.values.tolist())
-        embedding = sklearn.manifold.MDS(n_components=2,dissimilarity='precomputed')
-        sample_pos_not_df = embedding.fit_transform(dissimilarity_matrix)
-        sample_pos_df = pandas.DataFrame(data=sample_pos_not_df,index=samples,columns=['x','y'])
-        sample_positions = {sample: (sample_pos_df.loc[sample,'x'],sample_pos_df.loc[sample,'y'])
-                            for sample in samples}
-    elif mode == 'distance':
-        embedding = sklearn.manifold.MDS(n_components=2,dissimilarity='precomputed')
-        sample_pos_not_df = embedding.fit_transform(distance_matrix)
-        sample_pos_df = pandas.DataFrame(data=sample_pos_not_df,index=samples,columns=['x','y'])
-        sample_positions = {sample: (sample_pos_df.loc[sample,'x'],sample_pos_df.loc[sample,'y'])
-                            for sample in samples}
     else:
         print("Unregnized option.")
         sys.exit(1)
-        
-    # Visualize the clusterings based on the spring layout
-    clustering_names = summary_clusterings.columns.values.tolist()
-    num_subplots = len(clustering_names)
-    num_rows = int(math.ceil(num_subplots/2))
-    num_cols = 2
-    for clustering_index in range(0,num_subplots):
-        subplot_index = clustering_index + 1
-        ax = plt.subplot(num_rows,num_cols,subplot_index)
-        clustering_name = clustering_names[clustering_index] 
-        graph = networkx.Graph()
-        for sample in samples:
-            graph.add_node(sample)
-        clustering = summary_clusterings[clustering_name]
-        num_clusters = numpy.amax(clustering.values)
-        for cluster in range(1,num_clusters+1):
-            cluster_samples = clustering.index[clustering == cluster].tolist()
-            for sample1,sample2 in itertools.combinations(cluster_samples,2):
-                if mode == 'tree':
-                    graph.add_edge(sample1,sample2,weight=matrix[sample1][sample2])
-                else:
-                    graph.add_edge(sample1,sample2)
-        if mode == 'tree':
-            graph = networkx.algorithms.tree.mst.maximum_spanning_tree(graph,
-                                                                       weight='weight',
-                                                                       algorithm='kruskal',
-                                                                       ignore_nan=False)
-        ax.set_title("%s Clustering" % clustering_name)
-        networkx.draw_networkx(graph,pos=sample_positions,node_size=5,width=0.25,with_labels=False)
-    plt.show()
-    '''
         
 def hierarchical_clustering(distance, name, metadata = None, columns = None, create_pdf = False, pdf = None):
     '''
