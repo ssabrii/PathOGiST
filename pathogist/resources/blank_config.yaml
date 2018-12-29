@@ -23,16 +23,16 @@ genotyping:
         profile:
     download_pubmlst:
       options:
-      ## Kmer size
-      k:
-      ## Species name or scheme ID
-      scheme:
+        ## Kmer size
+        k:
+        ## Species name or scheme ID
+        scheme:
     download_cgmlst:
       options:
-      ## Kmer size
-      k:
-      ## Species name or scheme ID
-      scheme:
+        ## Kmer size
+        k:
+        ## Species name or scheme ID
+        scheme:
     download_enterobase:
       options:
         ## Kmer size
