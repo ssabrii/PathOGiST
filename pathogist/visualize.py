@@ -51,7 +51,10 @@ def distance_histogram(distance, name='SAMPLE', save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-def visualize_clusterings(summary_clusterings,mode="spring",matrix=None):
+def visualize_clusterings(summary_clusterings,figure_size=(12,9),
+                                              output_prefix=None,
+                                              mode="spring",
+                                              matrix=None):
     '''
     Visualize the consensus clustering and correlation clusterings.
     @param summary_clusterings: A Pandas Dataframe where the index is the sample names, columns are
@@ -63,8 +66,10 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None):
                          position. Requires `matrix` parameter. 
     @param matrix: A Pandas Dataframe of the similarity matrix from the consensus clustering step of 
                    the problem
+    @param output_prefix: The prefix, including directories, of the save path PNG of the 
+                          visualization.
     '''
-    plt.figure()
+    plt.figure(figsize=figure_size)
     assert('Consensus' in summary_clusterings.columns.values),\
            'Please ensure your input clusterings contain a consensus clustering.'
     samples = summary_clusterings.index.values.tolist()
@@ -114,8 +119,8 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None):
                                    node_size=5,
                                    width=0.25,
                                    with_labels=False)
-        plt.show()
     elif mode == 'tree':
+        assert(matrix is not None),'Error: please specify an input matrix.'
         consensus_clustering = summary_clusterings['Consensus']
         for sample1,sample2 in itertools.combinations(samples,2):
             graph.add_edge(samples.index(sample1),
@@ -136,10 +141,16 @@ def visualize_clusterings(summary_clusterings,mode="spring",matrix=None):
                       vmin=0,
                       vmix=max(node_colors),
                       cmap=cmx.tab20)
-        plt.show()
     else:
         print("Unregnized option.")
         sys.exit(1)
+
+    if output_prefix is None:
+        plt.show()
+    else:
+        output_path = '%s.png' % output_prefix
+        plt.savefig(output_path)
+        
         
 def hierarchical_clustering(distance, name, metadata = None, columns = None, create_pdf = False, pdf = None):
     '''
