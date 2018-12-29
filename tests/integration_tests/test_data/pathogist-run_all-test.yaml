@@ -2,34 +2,42 @@
 # PathOGiST configuration file.
 # This configuration file is in YAML file format, release 1.2 (Third Edition).
 # Google yaml for the specification.
+
+# Directory to save temporary files.
+temp: tests/integration_tests/temp_dir
+# Number of threads on your computer
+threads: 1
 # Do not remove the sections 'genotyping', 'distances', 'thresholds', 'all_constraints', or 'output'.
-# Remove all key-value pairs in the sections 'genotyping' or 'distances' if you want them blank.
+# Remove all key-value pairs in the sections 'calls' or 'distances' if you want them blank.
 # Remove all list items in the section 'fine_clusterings' if you want that blank, too.
 # Keys from 'genotyping' and 'distances' sections should not overlap.
-genotyping: 
-    # Raw genotyping data from which to create distance matrices.
-    # Accepted values are paths to text files containing paths to genotyping files.
-    # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE. 
+clustering:
+  # Output prefix for final consensus clustering and visualization
+  output_prefix: tests/integration_tests/test_data/yersinia_final_clustering 
+  # Raw genotyping data from which to create distance matrices.
+  # Accepted values are paths to text files containing paths to genotyping files.
+  # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE
+  genotyping: 
     MLST: tests/integration_tests/test_data/yersinia_mentalist_calls.txt
-distances:
-    # Paths to pre-constructed distance matrices in tsv format.
-    # You can also specify SNP, MLST and CNV distance matrices here if you pre-constructed them,
-    # but then they shouldn't appear in the section 'genotyping'.
-    SNP: tests/integration_tests/test_data/yersinia_snp_dist.tsv   
+  # Paths to pre-constructed distance matrices in tsv format.
+  # You can also specify SNP, MLST, spoligotypoing and CNV distance matrices here if you 
+  # pre-constructed them, but then they shouldn't appear in the section 'genotyping'.
+  distances:
+    SNP: tests/integration_tests/test_data/yersinia_snp_dist.tsv
     kWIP: tests/integration_tests/test_data/yersinia_kwip_dist.tsv
-fine_clusterings:
-    # The genotyping datatypes that are considered to be the "finest".
+  # The genotyping datatypes that are considered to be the "finest".
+  fine_clusterings:
     - SNP
-thresholds:
-    # Threshold values for performing correlation clustering on genotyping data types given above.
-    # Every key appearing in the sections 'genotyping' and 'distances' should appear here with a value. 
+  # Threshold values for performing correlation clustering on genotyping data types given above
+  # Every key appearing in the sections 'genotyping' and 'distances' should appear 
+  # here with a value. 
+  thresholds:
     SNP: 2500 
     MLST: 300
     kWIP: 0.4
-# Put the path for the final consensus clustering in tsv format here.
-output: tests/integration_tests/test_data/yersinia_final_clustering.tsv
-# Use all constraints when performing correlation and consensus clustering
-all_constraints: False
-solver: pulp
-temp: tests/integration_tests/temp_dir
+  # Use all constraints when performing correlation and consensus clustering
+  all_constraints: False
+  # Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
+  solver: pulp
+  visualize: False
 ...
