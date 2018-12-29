@@ -160,7 +160,7 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
         call_command = ['mentalist','call']
         call_command.extend(['--db', db_path])
         call_command.extend(['-o', call_path])
-        #call_command.extend(['--threads', str(threads)])
+        call_command.extend(['--threads', str(threads)])
 
         # Add input reads path to mentalist call command
         call_command.extend(['-1', forward_reads_paths[accession]])
