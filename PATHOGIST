@@ -21,7 +21,7 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
-def read_genotyping_calls(genotype,calls):
+def read_genotyping_calls(genotype,calls_path):
     read_calls_functions = {'SNP': pathogist.io.read_snp_calls,
                             'MLST': pathogist.io.read_mlst_calls,
                             'CNV': pathogist.io.read_cnv_calls,
@@ -29,7 +29,7 @@ def read_genotyping_calls(genotype,calls):
                            } 
     assert(genotype in read_calls_functions.keys()),\
         "Error: genotype datatype %s not supported." % genotype
-    return read_calls_functions[genotype](calls)
+    return read_calls_functions[genotype](calls_path)
 
 def create_genotype_distance_matrix(genotype,calls):
     create_distance_functions = {'SNP': pathogist.distance.create_snp_distance_matrix,
@@ -232,7 +232,7 @@ def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir)
         pass
 
     # Add the distance output path
-    kwip_dist_path = '%s/kwip_dist.tsv'
+    kwip_dist_path = '%s/kwip_dist.tsv' % temp_dir
     kwip_command.extend(['-d', kwip_dist_path])
 
     # Specify the paths to the khmer hashes to kwip
@@ -383,16 +383,17 @@ def run_genotyping_tools(genotyping_args, threads, temp_dir):
 
 def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir):
     # Make sure the configuration file is formatted correctly 
-    distance_keys_set = set(clustering_args['distances'].keys())
-    genotyping_keys_set = set(clustering_args['genotyping'].keys())
-    threshold_keys_set = set(clustering_args['thresholds'].keys())
-    fine_clusterings_set = set(clustering_args['fine_clusterings'])
-    assert( (distance_keys_set & genotyping_keys_set) == set() ),\
-        "'distances' and 'genotyping' have a key in common."
-    assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
-        "Set of keys in thresholds not equal to the set of keys in genotyping and distances."
-    assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
-        "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
+    if False not in [isinstance(clustering_args[section],dict) for section in clustering_args]:
+        distance_keys_set = set(clustering_args['distances'].keys())
+        genotyping_keys_set = set(clustering_args['genotyping'].keys())
+        threshold_keys_set = set(clustering_args['thresholds'].keys())
+        fine_clusterings_set = set(clustering_args['fine_clusterings'])
+        assert( (distance_keys_set & genotyping_keys_set) == set() ),\
+            "'distances' and 'genotyping' have a key in common."
+        assert( threshold_keys_set == (distance_keys_set | genotyping_keys_set) ),\
+            "Set of keys in thresholds not equal to the set of keys in genotyping and distances."
+        assert( fine_clusterings_set <= (distance_keys_set | genotyping_keys_set) ),\
+            "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
 
     denovo_calls_paths = denovo_calls_dists_paths['calls']
     denovo_distances_paths = denovo_calls_dists_paths['distances']
@@ -400,10 +401,12 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
     # Get genotyping calls
     logger.info(' Reading genotyping calls...')
     calls = {}
-    for genotype in clustering_args['genotyping'].keys():
-        calls[genotype] = read_genotyping_calls(genotype,clustering_args['genotyping'][genotype]) 
+    if isinstance(clustering_args['genotyping'],dict):
+        for genotype in clustering_args['genotyping'].keys():
+            calls_path = clustering_args['genotyping'][genotype]
+            calls[genotype] = read_genotyping_calls(genotype,calls_path)
     for genotype in denovo_calls_paths:
-        calls[genotype] = read_genotyping(genotype,denovo_calls_paths)
+        calls[genotype] = read_genotyping_calls(genotype,denovo_calls_paths[genotype])
     logger.info(' Finished reading genotyping calls.')
 
     # Create distance matrices from calls
@@ -421,10 +424,12 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
 
     # Read pre-constructed distance matrices
     logger.info(' Reading distance matrices...')
-    for genotype in clustering_args['distances'].keys():
-        distances[genotype] = pathogist.io.open_distance_file(clustering_args['distances'][genotype])
+    if isinstance(clustering_args['distances'],dict):
+        for genotype in clustering_args['distances'].keys():
+            distance_matrix_path = clustering_args['distances'][genotype]
+            distances[genotype] = pathogist.io.open_distance_file(distance_matrix_path)
     for genotype in denovo_distances_paths:
-        distances[genotype] = pathogist.io.open_distance_file(denovo_distances_path[genotype])
+        distances[genotype] = pathogist.io.open_distance_file(denovo_distances_paths[genotype])
     logger.info(' Finished creating distance matrices.')
 
     # Match the distance matrices if need be
@@ -442,6 +447,7 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
     fine_clusterings = clustering_args['fine_clusterings']
     lp_solver = clustering_args['solver']
 
+    # Sort the indices and columns to keep results consistent between runs
     for genotype in genotypes:
         distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
 
