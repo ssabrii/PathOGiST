@@ -7,14 +7,17 @@ import sys
 import gc
 import random
 import itertools
-import cplex
-import cplex.exceptions
-from cplex.exceptions import CplexError
 import pandas
 import pulp
 from threading import Thread
 import time
 import math
+try:
+    import cplex
+    import cplex.exceptions
+    from cplex.exceptions import CplexError
+except:
+    pass
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)

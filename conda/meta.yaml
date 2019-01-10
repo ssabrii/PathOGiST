@@ -23,7 +23,6 @@ requirements:
     - pyyaml >=3.13 
     - pulp >=1.6.8
     - networkx
-    - cplex >=12.8
     - matplotlib
     - coincbc >=2.9.9
     - mentalist
