@@ -18,6 +18,7 @@ try:
     from cplex.exceptions import CplexError
 except:
     raise ImportError("CPLEX failed to be imported.")
+    pass
 
 logger = logging.getLogger(__name__)
 stdout = logging.StreamHandler(sys.stdout)
