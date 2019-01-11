@@ -17,16 +17,13 @@ Do the following commands:
 ## Installation
 You can `PATHOGIST` directly from this repo as long as you have the dependencies installed.
 We recommend you create a conda environment for PathOGiST, though, and install PathOGiST through conda.
-First, add the Anaconda channel `ibmdecisionoptimization` to your conda config like so:
-```bash
-conda config --add channels ibmdecisionoptimization
-```
 PathOGiSt requires Python 3.5, so create a conda environment with the right python version:
 ```bash
 conda create --name pathogist python=3.5
 ```
-And then install PathOGiST:
+And then activate the environment and install PathOGiST:
 ```bash
+source activate pathogist
 conda install -c seanla pathogist
 ```
 When inside the `pathogist` conda environment, you can then simply run `PATHOGIST -h`, for example.
