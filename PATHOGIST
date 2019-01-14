@@ -184,6 +184,14 @@ def consensus(param):
     with open(param.fine_clusterings,'r') as file:
         for line in file:
             fine_clusterings.append( line.rstrip() )
+    # Match the distance matrices if need be
+    distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
+
+    if (len(set(distance_matrix_samples)) > 1):
+        logger.info('Warning: samples differ across the distance matrices.')
+        logger.info('Matching distance matrices ...')
+        distances = pathogist.distance.match_distance_matrices(distances)
+
     logger.info("Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
