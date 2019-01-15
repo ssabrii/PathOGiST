@@ -3,6 +3,13 @@
 ## Build Status
 [![Build Status](https://travis-ci.org/WGS-TB/PathOGiST.svg?branch=master)](https://travis-ci.org/WGS-TB/PathOGiST)
 
+## Bugfixing Protocol
+1. Raise Github issue
+2. Fix the issue
+3. Create new unit tests 
+4. Run unit tests
+5. Close issue
+
 ## Tasks
 - [ ] Lawyering up
   - [x] Add a license (e.g. MIT)
