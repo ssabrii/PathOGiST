@@ -333,7 +333,7 @@ def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
 
     return forward_reads_paths, reverse_reads_paths
 
-def run_genotyping_tools(genotyping_args, threads, temp_dir):
+def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     forward_reads_list_path = genotyping_args['input_reads']['forward_reads']
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
@@ -344,40 +344,41 @@ def run_genotyping_tools(genotyping_args, threads, temp_dir):
     denovo_calls_paths = {}
     denovo_distances_paths = {}
 
-    if 'mentalist' in genotyping_args:
+    if 'mentalist' in genotyping_args and run_args['mentalist'] == 1:
         mentalist_args = genotyping_args['mentalist']
         denovo_calls_paths['MLST'] = run_mentalist(mentalist_args,
                                                    forward_reads_paths,
                                                    reverse_reads_paths,
                                                    threads,
                                                    temp_dir)
-    if 'kwip' in genotyping_args:
+    if 'kwip' in genotyping_args and run_args['kwip'] == 1:
         kwip_args = genotyping_args['kwip']
         denovo_distances_paths['kWIP'] = run_kwip(kwip_args,
                                                   forward_reads_paths,
                                                   reverse_reads_paths,
                                                   threads,
                                                   temp_dir)
-    if 'prince' in genotyping_args:
+    if 'prince' in genotyping_args and run_args['prince'] == 1:
         prince_args = genotyping_args['prince']
         denovo_calls_paths['CNV'] = run_prince(prince_args,
-                                               combined_reads_list_path,
+                                               forward_reads_list_path,
                                                threads,
                                                temp_dir)
-    if 'snippy' in genotyping_args:
+    if 'snippy' in genotyping_args and run_args['snippy'] == 1:
         snippy_args = genotyping_args['snippy']
         denovo_calls_paths['SNP'] = run_snippy(snippy_args,
                                                forward_reads_paths,
                                                reverse_reads_paths,
                                                threads,
                                                temp_dir)
-    if 'spotyping' in genotyping_args:
+    if 'spotyping' in genotyping_args and run_args['spotyping'] == 1:
         spotyping_args = genotyping_args['spotyping']
         denovo_calls_paths['spoligotyping'] = run_spotyping(spotyping_args,
                                                             forward_reads_paths,
                                                             reverse_reads_paths,
                                                             temp_dir)
 
+    sys.exit() #end to test
     denovo_calls_dists_paths = {'distances': denovo_distances_paths,'calls': denovo_calls_paths}
     return denovo_calls_dists_paths
 
@@ -514,8 +515,9 @@ def run_all(param):
 
         # genotyping software commands
         if 'genotyping' in config:
+            run_args = config['run']
             genotyping_args = config['genotyping']
-            denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,threads,temp_dir)
+            denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,run_args,threads,temp_dir)
 
         clustering_args = config['clustering']
         call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir)
