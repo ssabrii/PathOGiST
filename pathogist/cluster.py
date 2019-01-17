@@ -95,25 +95,36 @@ def processProblemWithPuLP(weights, all_constraints, start_solution):
     logger.debug("Finished PuLP solving.")
     return solMatrix
 
-def processProblem(Distances, all_constraints, start_solution=None, presolve=True):
+def processProblem(Distances, all_constraints, start_solutions=None, presolve=True):
     logger.debug("Creating problem instance ... ")
     my_prob = cplex.Cplex()
+    #my_prob.set_log_stream(None)
+    #my_prob.set_error_stream(None)
+    #my_prob.set_warning_stream(None)
+    #my_prob.set_results_stream(None)
     N = Distances.shape[0]
     numConstraints = populateByNonZero(my_prob, Distances) if all_constraints else populateByNonZero_only_mixed(my_prob, Distances)
-    if start_solution is not None:
-        start_vector = [start_solution[i, j] for i, j in itertools.combinations(range(N), 2)]
-        # start_vector = [0 for i, j in itertools.combinations(range(N), 2)]
-        my_prob.MIP_starts.add([range(len(start_vector)), start_vector], my_prob.MIP_starts.effort_level.solve_MIP) # CHANGE HERE!!!
+    if start_solutions is not None:
+        for start_solution in start_solutions:
+            start_vector = [start_solution[i, j] for i, j in itertools.combinations(range(N), 2)]
+            # start_vector = [0 for i, j in itertools.combinations(range(N), 2)]
+            my_prob.MIP_starts.add([range(len(start_vector)), start_vector], my_prob.MIP_starts.effort_level.solve_MIP) # CHANGE HERE!!!
     gc.collect()
-    if presolve:
+    if not presolve:
     	my_prob.parameters.preprocessing.presolve.set(0) # try without this also.
     my_prob.parameters.emphasis.memory.set(1)  # try without this also.
-    my_prob.parameters.simplex.display.set(2)
+    my_prob.parameters.timelimit.set(3600 * 5)
+    # my_prob.parameters.simplex.display.set(2)
+    # set optimality gap to 1 over sum of all the negative weights
+    sum_neg = sum(Distances[Distances < 0])
+    my_prob.parameters.mip.tolerances.mipgap.set(1/abs(sum_neg))
+    num_iterations = 0
     logger.debug("Solving ... ")
     while True:
+        num_iterations += 1
         try:
-            my_prob.solve()
-            print("iterations:", my_prob.solution.progress.get_num_iterations())
+            sol = my_prob.solve()
+            #print("iterations:", my_prob.solution.progress.get_num_iterations())
             
         except CplexError as exc:
             if exc.args[2] == cplex.exceptions.error_codes.CPXERR_NO_MEMORY:
@@ -142,7 +153,11 @@ def processProblem(Distances, all_constraints, start_solution=None, presolve=Tru
             break
         logger.debug("Re-optimizing with all violated constraints added ...")
     logger.debug("OBJ value: %.f" % my_prob.solution.get_objective_value())
+    print(my_prob.solution.MIP.get_mip_relative_gap())
+    print(my_prob.solution.MIP.get_best_objective())
     print(my_prob.solution.get_objective_value())
+    print(numConstraints, num_iterations, sep='\t')
+    print(my_prob.solution.status[my_prob.solution.get_status()])
     logger.debug("Finished CPLEX solving.")
     return solMatrix
 
@@ -386,7 +401,10 @@ def c4(G, epsilon):
     delta = max_deg
     round = 0
     while len(pi) > 0:
-        if round > (2 / epsilon) * math.log(n * math.log2(max_deg / min_deg)):
+        min_deg = 1 if min_deg == 0 else min_deg
+        ratio = max_deg / min_deg
+        ratio = 1.1 if ratio <= 1 else ratio
+        if round > (2 / epsilon) * math.log(n * math.log2(ratio)):
             round = 0
             delta /= 2
         else:
@@ -464,29 +482,33 @@ def correlation(distance_matrix, threshold, all_constraints=False, solver='pulp'
     weight_matrix = threshold - distance_matrix
     
     if method == 'ILP':
-        start_solution = None
+        start_solutions = None
     else:
-        c4_clustering = c4_correlation(distance_matrix, threshold)
         if method == 'C4+ILP':
             indexes = distance_matrix.index
             N = distance_matrix.shape[0]
-            start_solution = numpy.ones((N, N))
-            numpy.fill_diagonal(start_solution, 0)
-            for i, j in itertools.combinations(range(N), 2):
-                    if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
-                        start_solution[i, j] = 0
-                        start_solution[j, i] = 0
+            start_solutions = []
+            for k in range(10):
+                c4_clustering = c4_correlation(distance_matrix, threshold)
+                start_solution = numpy.ones((N, N))
+                numpy.fill_diagonal(start_solution, 0)
+                for i, j in itertools.combinations(range(N), 2):
+                        if c4_clustering['Cluster'].loc[indexes[i]] == c4_clustering['Cluster'].loc[indexes[j]]:
+                            start_solution[i, j] = 0
+                            start_solution[j, i] = 0
+                start_solutions += [start_solution]
     
     if method == 'C4':
         clustering = c4_clustering
+        print("N/A", "N/A", sep='\t')
     else:
-        logger.info("Solving instance for threshold value " + str(threshold) + " ...")
+        #logger.info("Solving instance for threshold value " + str(threshold) + " ...")
         if solver == 'cplex':
-            sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solution, presolve)
+            sol_matrix = processProblem(weight_matrix.values, all_constraints, start_solutions, presolve)
             if not sol_matrix:
                 raise CplexError
         elif solver == 'pulp':
-            sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints, start_solution)
+            sol_matrix = processProblemWithPuLP(weight_matrix.values, all_constraints, start_solutions)
         else:
             print("Error: unsupported solver %s" % (solver))
             sys.exit(1) 
@@ -496,7 +518,7 @@ def correlation(distance_matrix, threshold, all_constraints=False, solver='pulp'
     #logger.info("Applying Chawla rounding ...")
     #list_of_clusters = sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values),
     #                          key=lambda x:x[0])
-    logger.info("Done! %d clusters found" % clustering['Cluster'].values.max())
+    #logger.info("Done! %d clusters found" % clustering['Cluster'].values.max())
     return clustering
 
 def multiple_correlation(distance_matrix, thresholds, all_constraints=False,solver='pulp', method='C4+ILP'):
@@ -721,7 +743,7 @@ def construct_consensus_weights(clusterings,distances,fine_clusterings):
     S = Pi.subtract(D)
     return S
 
-def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solver='pulp'):
+def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solver='pulp', method="ILP+C4"):
     '''
     Solve an instane of consensus clustering.
     @parameter clusterings: dictionary of pandas dataframe representing multiple clusterings as vectors
@@ -734,21 +756,7 @@ def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solve
     '''
     clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
     weight_matrix = construct_consensus_weights(clustering_matrices,distances,fine_clusterings)
-    samples = weight_matrix.columns.values
-    if solver == 'cplex':
-        sol_matrix = processProblem(weight_matrix.values,all_constraints)
-        if not sol_matrix:
-            raise CplexError
-    elif solver == 'pulp':
-        sol_matrix = processProblemWithPuLP(weight_matrix.values,all_constraints)
-    else:
-        print("Error: unsupported solver %s" % (solver))
-        sys.exit(1)
-    list_of_clusters =  sorted(derandomized_chawla_rounding(sol_matrix,weight_matrix.values)
-                               ,key=lambda x:x[0])
-    # Turn the list of clusters into pandas data frame
-    clustering = clustering_to_pandas(list_of_clusters,samples)
-    logger.info("Done! %d clusters found" % clustering['Cluster'].values.max())
+    clustering = correlation(-weight_matrix, 0, all_constraints, solver, method)
     clustering.columns = ['Consensus']
     return clustering
 
