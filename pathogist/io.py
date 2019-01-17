@@ -34,9 +34,10 @@ def read_mlst_calls(calls_paths):
             for line in calls_paths_file:
                 calls_paths.append(line.rstrip())
     calls = {}
+    #print(calls_paths)
     # Go through the calls file for each sample, and record the MLST calls
     for calls_path in calls_paths:
-        calls_path = line.rstrip().split('=')[0]
+        calls_path = calls_path.rstrip().split('=')[0]
         with open(calls_path,'r') as calls_file:
             # Skip the header
             calls_file.readline()
@@ -242,7 +243,7 @@ def read_spotype_calls(calls_paths):
                 calls_path = line.rstrip().split('=')[0]
                 calls_paths.append(calls_path)
     calls = {}
-    for calls_path in calls_paths:
+    for call_path in calls_paths:
         with open(call_path,'r') as call_file:
             # Skip the header
             call_file.readline()

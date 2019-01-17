@@ -248,11 +248,13 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
     prince_options = prince_args['options']
     calls_path = '%s/CNV.calls' % (temp_dir)
     prince_command = ['prince', '-tf', combined_reads_list_path, '-to', calls_path]
+    
     try:
         for arg in prince_options:
             prince_command.extend(['--%s' % arg, prince_options[arg]])
     except:
         pass
+    logger.info(prince_command)
     logger.info(" Finding CNVs using PRINCE...")
     subprocess.call(prince_command)
     logger.info(" Finished running PRINCE.")
@@ -292,7 +294,7 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
         # Specify the path the to the forward reads of the sample for spotyping
         spotyping_command.append(forward_reads[accession])
         spotyping_command.append(reverse_reads[accession]) 
-
+        logger.info(spotyping_command)
         logger.info(" Running SpoTyping on accession %s" % accession)
         subprocess.call(spotyping_command)
         logger.info(" Finished running SpoTyping on accession %s" % accession)
@@ -305,7 +307,7 @@ def combine_reads_lists(forward_reads_paths,reverse_reads_paths,temp_dir):
     combined_reads_list_path = '%s/combined_reads.txt' % temp_dir
     with open(combined_reads_list_path,'w') as output:
         for accession in accessions:
-            output.write('%s\n' % forward_reads_paths[accession])
+            output.write('%s\t' % forward_reads_paths[accession])
             output.write('%s\n' % reverse_reads_paths[accession])
     return combined_reads_list_path
 
@@ -361,7 +363,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     if 'prince' in genotyping_args and run_args['prince'] == 1:
         prince_args = genotyping_args['prince']
         denovo_calls_paths['CNV'] = run_prince(prince_args,
-                                               forward_reads_list_path,
+                                               combined_reads_list_path,
                                                threads,
                                                temp_dir)
     if 'snippy' in genotyping_args and run_args['snippy'] == 1:
@@ -378,11 +380,11 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
                                                             reverse_reads_paths,
                                                             temp_dir)
 
-    sys.exit() #end to test
+    #sys.exit() #end to test
     denovo_calls_dists_paths = {'distances': denovo_distances_paths,'calls': denovo_calls_paths}
     return denovo_calls_dists_paths
 
-def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir):
+def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,threads,temp_dir):
     # Make sure the configuration file is formatted correctly 
     if False not in [isinstance(clustering_args[section],dict) for section in clustering_args]:
         distance_keys_set = set(clustering_args['distances'].keys())
@@ -404,9 +406,17 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
     calls = {}
     if isinstance(clustering_args['genotyping'],dict):
         for genotype in clustering_args['genotyping'].keys():
+            logger.info(genotype)
             calls_path = clustering_args['genotyping'][genotype]
-            calls[genotype] = read_genotyping_calls(genotype,calls_path)
+            try: calls_path
+            except NameError: calls_path = None
+            if calls_path != None:
+                calls[genotype] = read_genotyping_calls(genotype,calls_path)
+    logger.info(' Using')
     for genotype in denovo_calls_paths:
+        logger.info(genotype)
+        logger.info(denovo_calls_paths)
+        logger.info(denovo_calls_paths[genotype])
         calls[genotype] = read_genotyping_calls(genotype,denovo_calls_paths[genotype])
     logger.info(' Finished reading genotyping calls.')
 
@@ -422,7 +432,7 @@ def call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,te
                         % (genotype,dist_output_path)) 
             pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
     logger.info(" Finished creating distance matrices.")
-
+    sys.exit()
     # Read pre-constructed distance matrices
     logger.info(' Reading distance matrices...')
     if isinstance(clustering_args['distances'],dict):
@@ -520,7 +530,7 @@ def run_all(param):
             denovo_calls_dists_paths = run_genotyping_tools(genotyping_args,run_args,threads,temp_dir)
 
         clustering_args = config['clustering']
-        call_clustering_commands(clustering_args,denovo_calls_dists_paths,threads,temp_dir)
+        call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,threads,temp_dir)
         logger.info(" All done.")
 
 def correlation(param):
