@@ -720,7 +720,7 @@ def construct_consensus_weights(clustering_vectors,distances,fine_clusterings):
     S = Pi.subtract(D)
     return S
 
-def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solver='cplex', method="ILP"):
+def consensus(distances,clusterings,fine_clusterings,weight_matrix=None, all_constraints=False,solver='cplex', method="ILP"):
     '''
     Solve an instane of consensus clustering.
     @param clusterings: dictionary of pandas dataframe representing multiple clusterings as vectors
@@ -734,8 +734,9 @@ def consensus(distances,clusterings,fine_clusterings,all_constraints=False,solve
     @param solver: the solver to use to solve the correlation clustering instance
     @rvalue clustering: a Pandas DataFrame
     '''
-    clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
-    weight_matrix = construct_consensus_weights(clustering_matrices,distances,fine_clusterings)
+    if weight_matrix is None:
+        #clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
+        weight_matrix = construct_consensus_weights(clusterings,distances,fine_clusterings)
     clustering = correlation(-weight_matrix, 0, all_constraints, solver, method)
     clustering.columns = ['Consensus']
     return clustering

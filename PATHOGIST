@@ -193,7 +193,7 @@ def consensus(param):
         distances = pathogist.distance.match_distance_matrices(distances)
 
     logger.info("Creating and solving consensus clustering problem ...")
-    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
+    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.solver, param.method)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
                                                                      clusterings)
     logger.info("Writing clusterings to file ...")
@@ -259,9 +259,9 @@ def main():
     corr_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
                              help = "add all constraints to the optimization problem, "
                                   + "not just those with mixed signs.")
-    corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
+    corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='cplex',
                              help="LP solver interface to use")
-    corr_parser.add_argument("-m","--method",type=str,choices=['C4','ILP','C4+ILP'],default='C4+ILP',
+    corr_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='ILP',
                              help="Method for correlation clustering")
     corr_parser.add_argument("-p","--presolve", action="store_true", default=False, 
                              help="presolve the ILP")
@@ -282,8 +282,11 @@ def main():
     cons_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
                             help = "add all constraints to the optimization problem, "
                                  + " not just those with mixed signs.")
-    cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
+    cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='cplex',
                              help="LP solver interface to use")
+    
+    cons_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='ILP',
+                             help="Method for consensus clustering")
 
     # Distance command line arguments
     distance_parser = subparsers.add_parser(name='distance', help = "construct distance matrix from "
