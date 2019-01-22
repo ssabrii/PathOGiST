@@ -435,6 +435,26 @@ def c4_correlation(distance_matrix, threshold):
     clustering = clustering_to_pandas(list_of_clusters,samples)
     return clustering
 
+def obj_func(distance_matrix, threshold, clustering):
+    samples = distance_matrix.columns.values
+    sim_matrix = threshold - distance_matrix
+    obj_value = 0
+    for i, j in itertools.combinations(samples, 2):
+        s_ij = sim_matrix[i][j]
+        x_ij = 0 if clustering[i] == clustering[j] else 1
+        obj_value += x_ij * s_ij
+    return obj_value
+
+def multiple_c4(distance_matrix, threshold, repeat=20):
+    best_clustering = None
+    for i in range(repeat):
+        clustering = c4_correlation(distance_matrix, threshold)
+        obj_val = obj_func(distance_matrix, threshold, clustering['Cluster'])
+        if best_clustering is None or obj_val < min_obj_val:
+            min_obj_val = obj_val
+            best_clustering = clustering
+    return best_clustering
+
 def dfs(graph, start):
     visited, stack = set(), [start]
     while stack:
@@ -476,7 +496,8 @@ def correlation(distance_matrix, threshold, all_constraints=False, solver="cplex
     weight_matrix = threshold - distance_matrix
     
     if method == 'C4':
-        clustering = c4_correlation(distance_matrix, threshold)
+        #clustering = c4_correlation(distance_matrix, threshold)
+        clustering = multiple_c4(distance_matrix, threshold)
     else:
         #logger.info("Solving instance for threshold value " + str(threshold) + " ...")
         if solver == 'cplex':
