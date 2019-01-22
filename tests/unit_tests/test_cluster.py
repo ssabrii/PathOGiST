@@ -46,6 +46,7 @@ class ClusterTest(unittest.TestCase):
                               true_clustering.loc[samples,'Consensus'])
 
 
+"""
     def test_processProblemWithPulp(self):
         threshold = 500
         mlst_weights = threshold - self.mlst_dist
@@ -56,7 +57,7 @@ class ClusterTest(unittest.TestCase):
         true_sol_matrix = pathogist.io.open_distance_file(true_sol_matrix_path)
         pt.assert_frame_equal(sol_matrix, true_sol_matrix)
 
-"""
+
     def test_derandomized_chawla_rounding(self):
         threshold = 500
         mlst_weights = threshold - self.mlst_dist.sort_index()
