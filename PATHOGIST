@@ -97,7 +97,6 @@ def run_all(param):
         all_constraints = config['all_constraints'] 
         output_path = config['output']
         fine_clusterings = config['fine_clusterings']
-        lp_solver = config['solver']
 
         for genotype in genotypes:
             distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
@@ -106,7 +105,7 @@ def run_all(param):
         for genotype in genotypes:
             logger.info('Clustering %s...' % genotype)
             clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
-                                                       all_constraints,solver=lp_solver)     
+                                                       all_constraints)
             clusterings[genotype] = clustering
             if temp_dir is not None:
                 cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
@@ -122,12 +121,11 @@ def run_all(param):
             if temp_dir is not None:
                 consensus_weight_output_path = temp_dir + "/consensus_weight_matrix.tsv"
                 logger.info("Saving consensus weight matrix at %s..." % consensus_weight_output_path)
-                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path) 
+                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path)
         else:
             consensus_weight_matrix = None            
         consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
-                                                           weight_matrix=consensus_weight_matrix,
-                                                           solver=lp_solver)
+                                                           weight_matrix=consensus_weight_matrix)
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file...')
         pathogist.io.output_clustering(summary_clustering,output_path)
