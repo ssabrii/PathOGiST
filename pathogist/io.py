@@ -60,7 +60,7 @@ def read_mlst_calls(calls_paths):
 ''' legacy
 def read_snp_calls(calls_paths):
     '''
-    Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
+    ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
     '''
     calls = {}
     # If calls_paths is a list of paths or a text file containing the paths, do this. 
