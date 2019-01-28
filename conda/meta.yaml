@@ -1,6 +1,7 @@
+{% set name = "PathOGiST" %}
 {% set version = "0.2.2" %}
 package:
-  name: pathogist
+  name: {{ name|lower }}
   version: {{ version }}
 
 source:
@@ -17,7 +18,7 @@ requirements:
   run:
     - python
     - numpy >=1.15.1
-    - scipy >=1.1.0
+    - scipy 
     - pandas >=0.23.4
     - scikit-learn >=0.19.1
     - pyyaml >=3.13 
@@ -28,10 +29,13 @@ requirements:
     - mentalist
     - prince
     - snippy ==3.2
+    - vcflib
+    - khmer
 
-  test:
-    commands:
-      - pathogist -h
+test:
+  commands:
+    - PATHOGIST -h
+
 
 about:
   home: https://github.com/WGS-TB/PathOGiST
