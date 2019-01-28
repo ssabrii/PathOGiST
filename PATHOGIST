@@ -97,7 +97,6 @@ def run_all(param):
         all_constraints = config['all_constraints'] 
         output_path = config['output']
         fine_clusterings = config['fine_clusterings']
-        lp_solver = config['solver']
 
         for genotype in genotypes:
             distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
@@ -106,7 +105,7 @@ def run_all(param):
         for genotype in genotypes:
             logger.info('Clustering %s...' % genotype)
             clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
-                                                       all_constraints,solver=lp_solver)     
+                                                       all_constraints)
             clusterings[genotype] = clustering
             if temp_dir is not None:
                 cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
@@ -122,12 +121,11 @@ def run_all(param):
             if temp_dir is not None:
                 consensus_weight_output_path = temp_dir + "/consensus_weight_matrix.tsv"
                 logger.info("Saving consensus weight matrix at %s..." % consensus_weight_output_path)
-                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path) 
+                pathogist.io.write_distance_matrix(consensus_weight_matrix,consensus_weight_output_path)
         else:
             consensus_weight_matrix = None            
         consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
-                                                           weight_matrix=consensus_weight_matrix,
-                                                           solver=lp_solver)
+                                                           weight_matrix=consensus_weight_matrix)
         summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
         logger.info('Writing clusterings to file...')
         pathogist.io.output_clustering(summary_clustering,output_path)
@@ -139,7 +137,7 @@ def correlation(param):
     logger.debug("Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
     logger.debug("Creating and solving correlation clustering problem ... ")
-    clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.solver,param.method, param.presolve)
+    clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.method, param.presolve)
     logger.debug("Outputting clustering...")
     pathogist.io.output_clustering(clustering,param.output_path)
 
@@ -193,7 +191,7 @@ def consensus(param):
         distances = pathogist.distance.match_distance_matrices(distances)
 
     logger.info("Creating and solving consensus clustering problem ...")
-    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.solver, param.method)
+    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.method)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
                                                                      clusterings)
     logger.info("Writing clusterings to file ...")
@@ -265,9 +263,7 @@ def main():
     corr_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
                              help = "add all constraints to the optimization problem, "
                                   + "not just those with mixed signs.")
-    corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='cplex',
-                             help="LP solver interface to use")
-    corr_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='ILP',
+    corr_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='C4',
                              help="Method for correlation clustering")
     corr_parser.add_argument("-p","--presolve", action="store_true", default=False, 
                              help="presolve the ILP")
@@ -288,10 +284,7 @@ def main():
     cons_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
                             help = "add all constraints to the optimization problem, "
                                  + " not just those with mixed signs.")
-    cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='cplex',
-                             help="LP solver interface to use")
-    
-    cons_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='ILP',
+    cons_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='C4',
                              help="Method for consensus clustering")
 
     # Distance command line arguments
