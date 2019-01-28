@@ -641,6 +641,7 @@ def run_all(param):
 
         assert_config(config)
         # Determine whether to save temporary files, and which directory to do so
+
         temp_dir = config['temp'].rstrip('/')
         threads = config['threads']
         denovo_calls_dists_paths = {'calls': {}, 'distances': {}}
@@ -654,12 +655,19 @@ def run_all(param):
         call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,threads,temp_dir)
         logger.info(" All done.")
 
+
 def correlation(param):
     logger.info(" Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
+
+    logger.debug("Creating and solving correlation clustering problem ... ")
+    clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.method, param.presolve)
+    logger.debug("Outputting clustering...")
+''' legacy
     logger.info(" Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints)
     logger.info(" Outputting clustering...")
+'''
     pathogist.io.output_clustering(clustering,param.output_path)
 
 def consensus(param):
@@ -703,8 +711,21 @@ def consensus(param):
     with open(param.fine_clusterings,'r') as file:
         for line in file:
             fine_clusterings.append( line.rstrip() )
+
+    # Match the distance matrices if need be
+    distance_matrix_samples = [frozenset(distances[key].columns.values) for key in distances]
+
+    if (len(set(distance_matrix_samples)) > 1):
+        logger.info('Warning: samples differ across the distance matrices.')
+        logger.info('Matching distance matrices ...')
+        distances = pathogist.distance.match_distance_matrices(distances)
+
+    logger.info("Creating and solving consensus clustering problem ...")
+    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.method)
+''' legacy
     logger.info(" Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
+'''
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
                                                                      clusterings)
     logger.info(" Writing clusterings to file ...")
@@ -713,11 +734,31 @@ def consensus(param):
 def distance(param):
     logger.info(" Creating distance matrix ...")
     distance_matrix = None
+
+    read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
+                             'MLST': pathogist.io.read_mlst_calls,
+                             'CNV': pathogist.io.read_cnv_calls,
+                             'Spoligotype': pathogist.io.read_spotype_calls} 
+    create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
+                                'MLST': pathogist.distance.create_mlst_distance_matrix,
+                                'CNV': pathogist.distance.create_cnv_distance_matrix,
+                                'Spoligotype': pathogist.distance.create_spotype_distance_matrix}
+    if param.bed == "":								
+        calls = read_genotyping_calls[param.data_type](param.calls_path)
+    else:
+        if param.data_type == 'SNP':
+            calls = pathogist.io.read_snp_calls(param.calls_path, param.bed )
+        else:
+            # Output error when bed is used with non SNP data types
+            sys.exit('Bed option is only compatible with SNP genotype files')
+    distance_matrix = create_genotype_distance[param.data_type](calls)
+'''legacy
     if param.bed == "":                                
         calls = read_genotyping_calls(param.data_type,param.calls_path)
     else:
         calls = pathogist.io.read_snp_calls_with_bed(param.calls_path,param.bed)
     distance_matrix = create_genotype_distance_matrix(param.data_type,calls)
+'''
     if distance_matrix is not None:
         logger.info(" Writing distance matrix ...")
         pathogist.io.write_distance_matrix(distance_matrix,param.output_path)
@@ -761,9 +802,17 @@ def main():
     corr_parser.add_argument("threshold", type=float,help="threshold value for correlation")
     corr_parser.add_argument("output_path", type=str, help="path to write cluster output tsv file")
     corr_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
+                             help = "add all constraints to the optimization problem, "
+                                  + "not just those with mixed signs.")
+    corr_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='C4',
+                             help="Method for correlation clustering")
+    corr_parser.add_argument("-p","--presolve", action="store_true", default=False, 
+                             help="presolve the ILP")
+''' legacy
           help = "add all constraints to the optimization problem, not just those with mixed signs.")
     corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
                              help="LP solver interface to use")
+'''
 
     # Consensus clustering command line arguments
     cons_parser = subparsers.add_parser(name='consensus',
@@ -777,9 +826,15 @@ def main():
                   help = "path to file containing the names of the clusterings which are the finest")
     cons_parser.add_argument("output_path", type=str, help="path to output tsv file")
     cons_parser.add_argument("-a", "--all_constraints", action="store_true", default=False,
+                            help = "add all constraints to the optimization problem, "
+                                 + " not just those with mixed signs.")
+    cons_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='C4',
+                             help="Method for consensus clustering")
+'''legacy
           help = "add all constraints to the optimization problem, not just those with mixed signs.")
     cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
                              help="LP solver interface to use")
+'''
 
     # Distance command line arguments
     distance_parser = subparsers.add_parser(name='distance', help = "construct distance matrix from "
@@ -787,7 +842,7 @@ def main():
     distance_parser.add_argument("calls_path", type=str,
                              help = "path to file containing paths to signal calls "
                                   + "(e.g. MLST calls, CNV calls, etc)")
-    distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP'],
+    distance_parser.add_argument("data_type", type=str, choices=['MLST','CNV','SNP','Spoligotype'],
                              help = "genotyping data")
     distance_parser.add_argument("output_path", type=str, help="path to output tsv file")
     distance_parser.add_argument("--bed", type=str, default="", required=False, 

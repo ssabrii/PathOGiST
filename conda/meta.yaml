@@ -1,5 +1,5 @@
 {% set name = "PathOGiST" %}
-{% set version = "0.1" %}
+{% set version = "0.2.2" %}
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -9,7 +9,8 @@ source:
   sha256: b8caa400c4ef4453902c589acf3205c2dba966f4778fae48413e2c5a70ffa3ac
 
 build:
-  number: 0
+  number: 1
+  skip: True # [osx]
 
 requirements:
   host:
@@ -23,7 +24,6 @@ requirements:
     - pyyaml >=3.13 
     - pulp >=1.6.8
     - networkx
-    - cplex >=12.8
     - matplotlib
     - coincbc >=2.9.9
     - mentalist
@@ -35,6 +35,7 @@ requirements:
 test:
   commands:
     - PATHOGIST -h
+
 
 about:
   home: https://github.com/WGS-TB/PathOGiST

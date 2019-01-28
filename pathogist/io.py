@@ -1,7 +1,14 @@
 import pandas
 import numpy
 import re
+import os
 from collections import defaultdict
+
+def get_sample_name(forward, reverse):
+    fastq_list=[re.sub(".*/","",forward), re.sub(".*/","",reverse)]
+    prefix = os.path.commonprefix(fastq_list)
+    return re.sub("_", "", prefix)
+
 
 def open_clustering_file(path):
     '''
@@ -50,7 +57,7 @@ def read_mlst_calls(calls_paths):
         "Samples do not have the same number of MLST calls."
 
     return calls
-    
+''' legacy
 def read_snp_calls(calls_paths):
     '''
     Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
@@ -106,26 +113,26 @@ def read_snp_calls(calls_paths):
                 continue
             calls[column] = numpy.array(snps_union[column], dtype="S20")
     return calls
+'''
 
-def read_snp_calls_with_bed(calls_path, bed_path):
-    '''
+def read_snp_calls(calls_path, bed_path = ''):
+    
     Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
-    '''
+    
     calls = {}
     bed_filter = {}
-#bed_filter = defaultdict(int)
-    #bed_path="/home/klw17/filter_test.bed"
-    with open(bed_path,'r') as bed_file:
-        columns=bed_file.readline().rstrip().split('\t')
-        if columns[0].lower() != "chrom":
-            for i in range(int(columns[1]),int(columns[2])):
-                filter_pos = columns[0]+"_"+str(i)
-                bed_filter[filter_pos] = 1        
-        for line in bed_file:
-            columns = line.rstrip().split('\t')
-            for i in range(int(columns[1]),int(columns[2])):
-                filter_pos = columns[0]+"_"+str(i)
-                bed_filter[filter_pos] = 1        
+    if bed_path != '':
+        with open(bed_path,'r') as bed_file:
+            columns=bed_file.readline().rstrip().split('\t')
+            if columns[0].lower() != "chrom":
+                for i in range(int(columns[1]),int(columns[2])):
+                    filter_pos = columns[0]+"_"+str(i)
+                    bed_filter[filter_pos] = 1        
+            for line in bed_file:
+                columns = line.rstrip().split('\t')
+                for i in range(int(columns[1]),int(columns[2])):
+                    filter_pos = columns[0]+"_"+str(i)
+                    bed_filter[filter_pos] = 1        
             
     if calls_path.endswith("txt"):
         ref = {}
@@ -139,11 +146,6 @@ def read_snp_calls_with_bed(calls_path, bed_path):
                 # We assume that each line of the calls_file is in the form
                 # call_path=sample_name
                 call_path = line.rstrip().split('=')[0]
-                '''
-                call_path = line.rstrip()
-                sample_name = re.sub('/[A-Za-z.]*.tab', '', call_path)
-                sample_name = re.sub('.*/', '', sample_name)        
-                '''
                 with open(call_path,'r') as call_file:
                     sample_name=call_file.readline().rstrip()
                     sample[sample_name][-1] = -1
@@ -163,33 +165,6 @@ def read_snp_calls_with_bed(calls_path, bed_path):
             for pos in pos_count.keys():
                 snps.append(sample[sample_name][pos]) if pos in sample_name_keys else snps.append(ref[pos])
             calls[sample_name] = numpy.array(snps ,dtype="S1")    
-    '''
-        with open(calls_path,'r') as calls_file:
-            snps_union = pandas.DataFrame()
-            #print(snps_union.shape)
-            list_of_df = []
-            for line in calls_file:
-                call_path = line.rstrip()
-                sample = re.sub('/[A-Za-z.]*tab', '', call_path)
-                sample = re.sub('.*/', '', sample)
-                df=pandas.read_table(call_path)
-                snps = df[['CHROM', 'POS', 'TYPE', 'REF', 'ALT']]
-                snps = snps.rename(columns={'ALT': sample})
-                #snps = snps[snps.TYPE == "snp"]
-                snps['POS']=snps['POS'].astype(int)
-                list_of_df.append(snps)
-            while len(list_of_df) != 1 :
-                new_list_of_df = []
-                for i in range(0,len(list_of_df),2):
-                    if i == len(list_of_df) - 1 and len(list_of_df) % 2 == 1:
-                        new_list_of_df[len(new_list_of_df) - 1] = pandas.merge(list_of_df[i], new_list_of_df[len(new_list_of_df) - 1], how='outer', on=['CHROM', 'POS', 'TYPE','REF'])
-                        continue
-                    new_list_of_df.append(pandas.merge(list_of_df[i], list_of_df[i+1], how='outer', on=['CHROM', 'POS', 'TYPE','REF']))
-                list_of_df = new_list_of_df.copy()
-            snps_union = list_of_df[0]
-            for i in range(4,snps_union.shape[1]):
-                snps_union.iloc[:,i].fillna(snps_union.REF, inplace=True)
-    '''
     # Using snippy-core output as input
     if calls_path.endswith("tab"):
         snps_union = pandas.read_csv(calls_path, sep='\t')
@@ -198,9 +173,8 @@ def read_snp_calls_with_bed(calls_path, bed_path):
             if column == "CHROM" or column == "POS" or column == "TYPE" or column == "REF":
                 continue
             calls[column] = numpy.array(snps_union[column], dtype="S20")
-    #modify this later
-    #assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
-    #    "Samples do not have the same number of MLST calls."
+    assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
+        "Samples do not have the same number of SNP calls."
     return calls
 
 
@@ -243,6 +217,21 @@ def read_spotype_calls(calls_paths):
                 calls_path = line.rstrip().split('=')[0]
                 calls_paths.append(calls_path)
     calls = {}
+'''
+deal with this
+    with open(calls_path,'r') as calls_file:
+        for line in calls_file:
+            values = line.split("\t")
+            seq = values[0].split("&")
+            forward = seq[0]
+            reverse = seq[1]
+            sample = get_sample_name(forward, reverse)
+            spoligotype = []
+            if(len(values[1]) == 43):
+                for char in str(values[1]):
+                    spoligotype.append(int(char))
+                calls[sample] = numpy.array(spoligotype)
+'''
     for call_path in calls_paths:
         with open(call_path,'r') as call_file:
             # Skip the header
@@ -251,9 +240,12 @@ def read_spotype_calls(calls_paths):
                 columns = line.rstrip().split('\t')
                 sample = columns[0]
                 calls[sample] = numpy.array(columns[1:],dtype=float)
+
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
-        "Samples do not have the same number of SpoType calls."
+        "Samples do not have the same number of Spoligotype calls."
     return calls
+    
+
 
 def output_clustering(clustering,output_path):
     '''
