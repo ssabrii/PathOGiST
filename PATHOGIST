@@ -261,7 +261,11 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
     logger.info(" Finding CNVs using PRINCE...")
     subprocess.call(prince_command)
     logger.info(" Finished running PRINCE.")
-    return calls_path
+    path_of_calls_path = '%s/prince_calls.txt' % (temp_dir)
+    f = open(path_of_calls_path, "w")
+    f.write(calls_path +  "\n")
+    f.close()
+    return path_of_calls_path
 
 def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
     accessions = set(forward_reads.keys()).union(reverse_reads.keys())
@@ -338,6 +342,14 @@ def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
     return forward_reads_paths, reverse_reads_paths
 
 def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
+    denovo_calls_paths = {}
+    denovo_distances_paths = {}
+    run_genotyping = False
+    for tool in run_args:
+        if run_args[tool] == 1:
+            run_genotyping = True
+    if run_genotyping = False:
+       return denovo_calls_dists_paths
     forward_reads_list_path = genotyping_args['input_reads']['forward_reads']
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
@@ -345,8 +357,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     combined_reads_list_path = combine_reads_lists(forward_reads_paths,
                                                    reverse_reads_paths,
                                                    temp_dir)
-    denovo_calls_paths = {}
-    denovo_distances_paths = {}
+
 
     if 'mentalist' in genotyping_args and run_args['mentalist'] == 1:
         mentalist_args = genotyping_args['mentalist']
@@ -750,7 +761,7 @@ def distance(param):
                                 'MLST': pathogist.distance.create_mlst_distance_matrix,
                                 'CNV': pathogist.distance.create_cnv_distance_matrix,
                                 'spoligotyping': pathogist.distance.create_spotype_distance_matrix}
-    if param.bed == "":								
+    if param.bed == "":                                
         calls = read_genotyping_calls[param.data_type](param.calls_path)
     else:
         if param.data_type == 'SNP':
