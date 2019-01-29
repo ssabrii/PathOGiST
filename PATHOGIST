@@ -35,7 +35,7 @@ def create_genotype_distance_matrix(genotype,calls):
     create_distance_functions = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                  'MLST': pathogist.distance.create_mlst_distance_matrix,
                                  'CNV': pathogist.distance.create_cnv_distance_matrix,
-                                 'spoligotyping': pathogist.distance.create_spoligo_distance_matrix,
+                                 'spoligotyping': pathogist.distance.create_spotype_distance_matrix,
                                 }
     assert(genotype in create_distance_functions.keys()),\
         "Error: genotype datatype %s not supported." % genotype
@@ -297,7 +297,6 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
         # Specify the path the to the forward reads of the sample for spotyping
         spotyping_command.append(forward_reads[accession])
         spotyping_command.append(reverse_reads[accession]) 
-        logger.info(spotyping_command)
         logger.info(" Running SpoTyping on accession %s" % accession)
         subprocess.call(spotyping_command)
         logger.info(" Finished running SpoTyping on accession %s" % accession)
@@ -394,15 +393,21 @@ def assert_config(config):
     #threads value assertion
     assert isinstance(config['threads'], int) and config['threads'] > 0 , "Threads value in the config file must be an integer and greater than 0"
     #run section assertion
+    run_genotyping_tools = False
     for tool in config['run']:
+        if config['run'][tool] == 1:
+           run_genotyping_tools = True
         assert config['run'][tool] == 1 or config['run'][tool] == 0, "The value for the tools under the run section must be 0 or 1 to indicate to not run and run respectively."
     #genotyping section assertion
     for key in config['genotyping']:
-        if key == "input_reads":
+        if key == "input_reads": # add assertions
             for type in config['genotyping'][key]:
                 reads_path = config['genotyping'][key][type]
                 if reads_path == None:
-                   assert reads_path != None, "File location values in the input_reads section under genotyping section must exist."
+                    if run_genotyping_tools == False:
+                        continue
+                    else:
+                        assert reads_path != None, "File location values in the input_reads section under genotyping section must exist when you are running genotyping tools."
                 assert os.path.isfile(reads_path), "File location values in the input_reads section under genotyping section must exist."
         if key == "mentalist":
             if config['genotyping'][key]['build_db']['options']['fasta_files'] != None:
@@ -425,7 +430,8 @@ def assert_config(config):
                 for flag in config['genotyping'][key]['call']['flags']:
                     assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"        
         if key == "kwip":
-            assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
+            if config['run']['kwip'] == 1:
+                assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
             if config['genotyping'][key]['kwip_options'] != None:
                 if config['genotyping'][key]['kwip_options']['weights'] != None:
                     assert os.path.isfile(config['genotyping'][key]['kwip_options']['weights']), "Weights in the kwip section under genotyping section must exist."
@@ -453,7 +459,8 @@ def assert_config(config):
                     if option == "minfrac":
                         assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0 and config['genotyping'][key]['options'][option] <= 1, "minfrac values under snippy section must be integer or float and be between 0 and 1"
         if key == "spotyping":
-            assert os.path.isfile(config['genotyping'][key]['path']), "SpoTyping python file location values for path must exist."
+            if config['run']['spotyping'] == 1:
+                assert os.path.isfile(config['genotyping'][key]['path']), "SpoTyping python file location values for path must exist."
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
                     assert flag in ['seq','noQuery','filter','sorted'], "seq, noQuery, filter, and sorted are the only flag allowed in the snippy section. Please look at the original config file for formatting"
@@ -497,8 +504,6 @@ def assert_config(config):
         if key == "solver":
             assert config['clustering'][key] == "pulp" or config['clustering'][key] == "c4" or config['clustering'][key] == "cplex", "Solver values must be either cplex or c4"
         if key == "visualize":
-            logger.info(config['clustering'][key])
-            logger.info(config['clustering'][key])
             assert config['clustering'][key] == True or config['clustering'][key] == False, "visualize values must be either True or False"
     #assert 2 == 1, "everything is good"
                     
@@ -527,17 +532,10 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     calls = {}
     if isinstance(clustering_args['genotyping'],dict):
         for genotype in clustering_args['genotyping'].keys():
-            logger.info(genotype)
             calls_path = clustering_args['genotyping'][genotype]
-            try: calls_path
-            except NameError: calls_path = None
             if calls_path != None:
                 calls[genotype] = read_genotyping_calls(genotype,calls_path)
-    logger.info(' Using')
     for genotype in denovo_calls_paths:
-        logger.info(genotype)
-        logger.info(denovo_calls_paths)
-        logger.info(denovo_calls_paths[genotype])
         calls[genotype] = read_genotyping_calls(genotype,denovo_calls_paths[genotype])
     logger.info(' Finished reading genotyping calls.')
 
@@ -563,7 +561,6 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
                 logger.info(distance_matrix_path)
                 distances[genotype] = pathogist.io.open_distance_file(distance_matrix_path)
     for genotype in denovo_distances_paths:
-        logger.info(genotype)
         distances[genotype] = pathogist.io.open_distance_file(denovo_distances_paths[genotype])
     logger.info(' Finished creating distance matrices.')
 
@@ -584,9 +581,7 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     method = clustering_args['method']
     presolve = clustering_args['presolve']
     # Sort the indices and columns to keep results consistent between runs
-    #logger.info(' Important')
     for genotype in genotypes:
-        logger.info(genotypes)
         distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
     clusterings = {}
     for genotype in genotypes:
@@ -744,11 +739,11 @@ def distance(param):
     read_genotyping_calls = {'SNP': pathogist.io.read_snp_calls,
                              'MLST': pathogist.io.read_mlst_calls,
                              'CNV': pathogist.io.read_cnv_calls,
-                             'Spoligotype': pathogist.io.read_spotype_calls} 
+                             'spoligotyping': pathogist.io.read_spotype_calls} 
     create_genotype_distance = {'SNP': pathogist.distance.create_snp_distance_matrix,
                                 'MLST': pathogist.distance.create_mlst_distance_matrix,
                                 'CNV': pathogist.distance.create_cnv_distance_matrix,
-                                'Spoligotype': pathogist.distance.create_spotype_distance_matrix}
+                                'spoligotyping': pathogist.distance.create_spotype_distance_matrix}
     if param.bed == "":								
         calls = read_genotyping_calls[param.data_type](param.calls_path)
     else:
