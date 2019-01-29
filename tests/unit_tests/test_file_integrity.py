@@ -7,7 +7,6 @@ sys.path.append('../..')
 import pathogist
 import pathogist.io
 import pathogist.cluster
-import PATHOGIST
 import yaml
 
 class FileIntegrityTest(unittest.TestCase):
@@ -23,7 +22,7 @@ class FileIntegrityTest(unittest.TestCase):
             except yaml.YAMLError:
                 print(yaml.YAMLError)
                 sys.exit(1)
-        assert PATHOGIST.assert_config(config) == 0
+        assert pathogist.assert_config(config) == 0
 
     '''
     def test_fastq_input(self):
