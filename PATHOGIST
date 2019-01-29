@@ -425,7 +425,7 @@ def assert_config(config):
                         continue
                     else:
                         assert os.path.isfile(reads_path), "File location values in the input_reads section under genotyping section must exist."
-        if key == "mentalist":
+        if key == "mentalist" and config['run'][key] == 1:
             if config['genotyping'][key]['build_db']['options']['fasta_files'] != None:
                 assert isinstance(config['genotyping'][key]['build_db']['options']['k'], int) and config['genotyping'][key]['build_db']['options']['k'] > 0, "k value in build_db under mentalist must be an integer and greater than 0"
                 assert os.path.isfile(config['genotyping'][key]['build_db']['options']['fasta_files']), "fasta_file value in build_db under mentalist must be a file path that exists"
@@ -445,22 +445,21 @@ def assert_config(config):
             if config['genotyping'][key]['call']['flags'] != None: 
                 for flag in config['genotyping'][key]['call']['flags']:
                     assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"        
-        if key == "kwip":
-            if config['run']['kwip'] == 1:
-                if config['genotyping'][key]['kwip_path'] == None:
-                    assert config['genotyping'][key]['kwip_path'] != None, "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
-                assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
+        if key == "kwip" and config['run'][key] == 1:
+            if config['genotyping'][key]['kwip_path'] == None:
+                assert config['genotyping'][key]['kwip_path'] != None, "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
+            assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
             if config['genotyping'][key]['kwip_options'] != None:
                 if config['genotyping'][key]['kwip_options']['weights'] != None:
                     assert os.path.isfile(config['genotyping'][key]['kwip_options']['weights']), "Weights in the kwip section under genotyping section must exist."
             if config['genotyping'][key]['kwip_flags'] != None:
                 for flag in config['genotyping'][key]['kwip_flags']:
                     assert flag in ['unweighted', 'calc_weights'], "unweighted and calc_weights are the only flags allowed in the kwip_flags section"            
-        if key == "prince":
+        if key == "prince" and config['run'][key] == 1:
             if config['genotyping'][key]['options'] != None:
                 if config['genotyping'][key]['options']['templates'] != None:
                     assert os.path.isfile(config['genotyping'][key]['options']['templates']), "Templates in the prince section under genotyping section must exist."
-        if key == "snippy":
+        if key == "snippy" and config['run'][key] == 1:
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
                     assert flag in ['unmapped'], "unmapped is the only flag allowed in the snippy section"
@@ -476,9 +475,10 @@ def assert_config(config):
                         assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0, "mincov values under snippy section must be integer or float and be greater or equal to 0"
                     if option == "minfrac":
                         assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0 and config['genotyping'][key]['options'][option] <= 1, "minfrac values under snippy section must be integer or float and be between 0 and 1"
-        if key == "spotyping":
-            if config['run']['spotyping'] == 1:
-                assert os.path.isfile(config['genotyping'][key]['path']), "SpoTyping python file location values for path must exist."
+        if key == "spotyping" and config['run'][key] == 1:
+            if config['genotyping'][key]['path'] == None:
+                assert config['genotyping'][key]['path'] != None, "SpoTyping python file location values for path must exist if you want to run spotyping"
+            assert os.path.isfile(config['genotyping'][key]['path']), "SpoTyping python file location values for path must exist."
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
                     assert flag in ['seq','noQuery','filter','sorted'], "seq, noQuery, filter, and sorted are the only flag allowed in the snippy section. Please look at the original config file for formatting"
@@ -524,7 +524,7 @@ def assert_config(config):
             assert config['clustering'][key] == "pulp" or config['clustering'][key] == "c4" or config['clustering'][key] == "cplex", "Solver values must be either cplex or c4"
         if key == "visualize":
             assert config['clustering'][key] == True or config['clustering'][key] == False, "visualize values must be either True or False"
-    #assert 2 == 1, "everything is good"
+    return 0
                     
             
         
