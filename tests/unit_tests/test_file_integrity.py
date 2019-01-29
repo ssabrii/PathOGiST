@@ -12,7 +12,7 @@ import yaml
 class FileIntegrityTest(unittest.TestCase):
 
     def setUp(self):
-        config_path = 'tests/unit_tests/test_data/file_integrity/config.yaml'
+        self.config_path = 'tests/unit_tests/test_data/file_integrity/config.yaml'
 
 
     def test_config(self):
