@@ -106,7 +106,7 @@ def read_snp_calls(calls_paths, bed_path = ''):
                         pos_count[chrom_pos] += 1
                         sample[sample_name][chrom_pos] = columns[4]
                         ref[chrom_pos] = columns[3]
-        pos_count = {k:v for (k,v) in pos_count.items() if (v > 1 and v != len(sample.keys()) ) }
+        pos_count = {k:v for (k,v) in pos_count.items() if (v > 1 and v != len(sample.keys()) and k not in bed_filter ) }
         for sample_name in sample.keys():
             snps = []
             sample_name_keys = sample[sample_name].keys()
@@ -203,7 +203,7 @@ def read_snp_calls(calls_paths, bed_path = ''):
     return calls
 '''
 
-def read_cnv_calls(calls_path):
+def read_cnv_calls(call_path):
     '''
     Read PRINCE CNV calls.
     @param calls_path: a string to the PRINCE calls file
@@ -211,16 +211,14 @@ def read_cnv_calls(calls_path):
                    a numpy array
     '''
     calls = {}
-    with open(calls_path,'r') as calls_file:
-        for line in calls_file:
-            call_path = line.rstrip().split('=')[0]
-            with open(call_path,'r') as call_file:
-                # Skip the header
-                call_file.readline()
-                for line in call_file:
-                    columns = line.rstrip().split('\t')
-                    sample = columns[0]
-                    calls[sample] = numpy.array(columns[1:],dtype=float)
+
+    with open(call_path,'r') as call_file:
+        # Skip the header
+        call_file.readline()
+        for line in call_file:
+            columns = line.rstrip().split('\t')
+            sample = columns[0]
+            calls[sample] = numpy.array(columns[1:],dtype=float)
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of CNV calls."
     return calls
@@ -235,36 +233,28 @@ def read_spotype_calls(calls_paths):
     '''
     # if calls_paths is a string, we assume its a file containing the paths to the SpoTyping calls
     if isinstance(calls_paths,str):
-        calls_paths_path = calls_path
+        calls_paths_path = calls_paths
         calls_paths = []
         with open(calls_paths_path,'r') as calls_paths_file:
             for line in calls_paths_file:
                 calls_path = line.rstrip().split('=')[0]
                 calls_paths.append(calls_path)
     calls = {}
-    '''
-deal with this
-    with open(calls_path,'r') as calls_file:
-        for line in calls_file:
-            values = line.split("\t")
-            seq = values[0].split("&")
-            forward = seq[0]
-            reverse = seq[1]
-            sample = get_sample_name(forward, reverse)
-            spoligotype = []
-            if(len(values[1]) == 43):
-                for char in str(values[1]):
-                    spoligotype.append(int(char))
-                calls[sample] = numpy.array(spoligotype)
-    '''
     for call_path in calls_paths:
         with open(call_path,'r') as call_file:
             # Skip the header
-            call_file.readline()
+            #call_file.readline()
             for line in call_file:
-                columns = line.rstrip().split('\t')
-                sample = columns[0]
-                calls[sample] = numpy.array(columns[1:],dtype=float)
+                values = line.split("\t")
+                seq = values[0].split("&")
+                forward = seq[0]
+                reverse = seq[1]
+                sample = get_sample_name(forward, reverse)
+                spoligotype = []
+                if(len(values[1]) == 43):
+                    for char in str(values[1]):
+                        spoligotype.append(int(char))
+                    calls[sample] = numpy.array(spoligotype)
 
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of Spoligotype calls."

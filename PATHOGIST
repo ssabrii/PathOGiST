@@ -408,7 +408,11 @@ def assert_config(config):
                         continue
                     else:
                         assert reads_path != None, "File location values in the input_reads section under genotyping section must exist when you are running genotyping tools."
-                assert os.path.isfile(reads_path), "File location values in the input_reads section under genotyping section must exist."
+                else:
+                    if run_genotyping_tools == False:
+                        continue
+                    else:
+                        assert os.path.isfile(reads_path), "File location values in the input_reads section under genotyping section must exist."
         if key == "mentalist":
             if config['genotyping'][key]['build_db']['options']['fasta_files'] != None:
                 assert isinstance(config['genotyping'][key]['build_db']['options']['k'], int) and config['genotyping'][key]['build_db']['options']['k'] > 0, "k value in build_db under mentalist must be an integer and greater than 0"
@@ -431,6 +435,8 @@ def assert_config(config):
                     assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"        
         if key == "kwip":
             if config['run']['kwip'] == 1:
+                if config['genotyping'][key]['kwip_path'] == None:
+                    assert config['genotyping'][key]['kwip_path'] != None, "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
                 assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
             if config['genotyping'][key]['kwip_options'] != None:
                 if config['genotyping'][key]['kwip_options']['weights'] != None:

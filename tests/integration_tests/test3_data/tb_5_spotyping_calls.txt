@@ -1,0 +1,5 @@
+/home/klw17/dev/PathOGiST/tests/integration_tests/test3_data/spotyping_calls/SRR6152639
+/home/klw17/dev/PathOGiST/tests/integration_tests/test3_data/spotyping_calls/SRR6152640
+/home/klw17/dev/PathOGiST/tests/integration_tests/test3_data/spotyping_calls/SRR6152641
+/home/klw17/dev/PathOGiST/tests/integration_tests/test3_data/spotyping_calls/SRR6152642
+/home/klw17/dev/PathOGiST/tests/integration_tests/test3_data/spotyping_calls/SRR6152643
