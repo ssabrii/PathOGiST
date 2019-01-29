@@ -58,10 +58,23 @@ def read_mlst_calls(calls_paths):
 
     return calls
 
-def read_snp_calls(calls_paths):
+def read_snp_calls(calls_paths, bed_path = ''):
     
     ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
-    
+    bed_filter = {}
+    if bed_path != '':
+        with open(bed_path,'r') as bed_file:
+            columns=bed_file.readline().rstrip().split('\t')
+            if columns[0].lower() != "chrom":
+                for i in range(int(columns[1]),int(columns[2])):
+                    filter_pos = columns[0]+"_"+str(i)
+                    bed_filter[filter_pos] = 1        
+            for line in bed_file:
+                columns = line.rstrip().split('\t')
+                for i in range(int(columns[1]),int(columns[2])):
+                    filter_pos = columns[0]+"_"+str(i)
+                    bed_filter[filter_pos] = 1        
+               
     calls = {}
     # If calls_paths is a list of paths or a text file containing the paths, do this. 
     if isinstance(calls_paths,list) or calls_paths.endswith("txt"):
@@ -115,7 +128,7 @@ def read_snp_calls(calls_paths):
     return calls
 '''
 
-def read_snp_calls(calls_path, bed_path = ''):
+def read_snp_calls(calls_paths, bed_path = ''):
     
     ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
     
@@ -134,31 +147,43 @@ def read_snp_calls(calls_path, bed_path = ''):
                     filter_pos = columns[0]+"_"+str(i)
                     bed_filter[filter_pos] = 1        
             
-    if calls_path.endswith("txt"):
+    # If calls_paths is a list of paths or a text file containing the paths, do this. 
+    if isinstance(calls_paths,list) or calls_paths.endswith("txt"):
+        # collect the paths to the calls into a list
+        if isinstance(calls_paths,str):
+            calls_paths_path = calls_paths
+            calls_paths = []
+            with open(calls_paths_path,'r') as calls_paths_file:
+                for line in calls_paths_file:
+                    calls_path = line.rstrip().split('=')[0]
+                    calls_paths.append(calls_path)
+        # now get the SNP calls for each of the samples
         ref = {}
         sample = {}
         pos_count = {}
         #initialize dictionaries
         pos_count = defaultdict(int)
         sample = defaultdict(dict)
-        with open(calls_path,'r') as calls_file:
-            for line in calls_file:
-                # We assume that each line of the calls_file is in the form
-                # call_path=sample_name
-                call_path = line.rstrip().split('=')[0]
-                with open(call_path,'r') as call_file:
-                    sample_name=call_file.readline().rstrip()
-                    sample[sample_name][-1] = -1
-                    for line in call_file:
-                        columns = line.rstrip().split('\t')
-                        #ensure there is one entry in a sample with no snps calls 
+        for calls_path in calls_paths:
+            with open(calls_path,'r') as calls_file:
+                for line in calls_file:
+                    # We assume that each line of the calls_file is in the form
+                    # call_path=sample_name
+                    call_path = line.rstrip().split('=')[0]
+                    with open(call_path,'r') as call_file:
+                        sample_name=call_file.readline().rstrip()
                         sample[sample_name][-1] = -1
-                        if columns[2] == "snp":
-                            chrom_pos = columns[0]+"_"+columns[1]
-                            pos_count[chrom_pos] += 1
-                            sample[sample_name][chrom_pos] = columns[4]
-                            ref[chrom_pos] = columns[3]
-        pos_count = {k:v for (k,v) in pos_count.items() if (v > 1 and v != len(sample.keys()) and k not in bed_filter ) }
+                        for line in call_file:
+                            columns = line.rstrip().split('\t')
+                            #ensure there is one entry in a sample with no snps calls 
+                            sample[sample_name][-1] = -1
+                            if columns[2] == "snp":
+                                chrom_pos = columns[0]+"_"+columns[1]
+                                pos_count[chrom_pos] += 1
+                                sample[sample_name][chrom_pos] = columns[4]
+                                ref[chrom_pos] = columns[3]
+        #0 for testing
+        pos_count = {k:v for (k,v) in pos_count.items() if (v > 0 and v != len(sample.keys()) and k not in bed_filter ) }
         for sample_name in sample.keys():
             snps = []
             sample_name_keys = sample[sample_name].keys()
@@ -176,8 +201,8 @@ def read_snp_calls(calls_path, bed_path = ''):
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of SNP calls."
     return calls
-
 '''
+
 def read_cnv_calls(calls_path):
     '''
     Read PRINCE CNV calls.
