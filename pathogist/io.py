@@ -57,11 +57,11 @@ def read_mlst_calls(calls_paths):
         "Samples do not have the same number of MLST calls."
 
     return calls
-''' legacy
+
 def read_snp_calls(calls_paths):
-    '''
+    
     ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
-    '''
+    
     calls = {}
     # If calls_paths is a list of paths or a text file containing the paths, do this. 
     if isinstance(calls_paths,list) or calls_paths.endswith("txt"):
@@ -117,7 +117,7 @@ def read_snp_calls(calls_paths):
 
 def read_snp_calls(calls_path, bed_path = ''):
     
-    Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
+    ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
     
     calls = {}
     bed_filter = {}
@@ -177,7 +177,7 @@ def read_snp_calls(calls_path, bed_path = ''):
         "Samples do not have the same number of SNP calls."
     return calls
 
-
+'''
 def read_cnv_calls(calls_path):
     '''
     Read PRINCE CNV calls.
@@ -217,7 +217,7 @@ def read_spotype_calls(calls_paths):
                 calls_path = line.rstrip().split('=')[0]
                 calls_paths.append(calls_path)
     calls = {}
-'''
+    '''
 deal with this
     with open(calls_path,'r') as calls_file:
         for line in calls_file:
@@ -231,7 +231,7 @@ deal with this
                 for char in str(values[1]):
                     spoligotype.append(int(char))
                 calls[sample] = numpy.array(spoligotype)
-'''
+    '''
     for call_path in calls_paths:
         with open(call_path,'r') as call_file:
             # Skip the header

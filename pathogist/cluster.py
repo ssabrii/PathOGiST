@@ -775,16 +775,15 @@ def consensus(distances,clusterings,fine_clusterings,weight_matrix=None, all_con
         #clustering_matrices = {key: cluster_vector_to_matrix(clusterings[key]) for key in clusterings.keys()}
         weight_matrix = construct_consensus_weights(clusterings,distances,fine_clusterings)
     clustering = correlation(-weight_matrix, 0, all_constraints, method)
-'''
-    samples = weight_matrix.columns.values
     '''
+    samples = weight_matrix.columns.values
+    
     if solver == 'cplex':
         sol_matrix = processProblem(weight_matrix.values,all_constraints)
         if not sol_matrix:
             raise CplexError
     elif solver == 'pulp':
-    '''
-    if solver == 'pulp':
+        if solver == 'pulp':
         sol_matrix = processProblemWithPuLP(weight_matrix.values,all_constraints)
     else:
         print("Error: unsupported solver %s" % (solver))
@@ -794,7 +793,7 @@ def consensus(distances,clusterings,fine_clusterings,weight_matrix=None, all_con
     # Turn the list of clusters into pandas data frame
     clustering = clustering_to_pandas(list_of_clusters,samples)
     logger.info(" Done! %d clusters found" % clustering['Cluster'].values.max())
-'''    
+    '''    
     clustering.columns = ['Consensus']
     return clustering
 

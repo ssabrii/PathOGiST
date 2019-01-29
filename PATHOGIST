@@ -500,7 +500,7 @@ def assert_config(config):
             logger.info(config['clustering'][key])
             logger.info(config['clustering'][key])
             assert config['clustering'][key] == True or config['clustering'][key] == False, "visualize values must be either True or False"
-    assert 2 == 1, "everything is good"
+    #assert 2 == 1, "everything is good"
                     
             
         
@@ -553,13 +553,14 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
                         % (genotype,dist_output_path)) 
             pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
     logger.info(" Finished creating distance matrices.")
-    sys.exit()
+    #sys.exit()
     # Read pre-constructed distance matrices
     logger.info(' Reading distance matrices...')
     if isinstance(clustering_args['distances'],dict):
         for genotype in clustering_args['distances'].keys():
-            distance_matrix_path = clustering_args['distances'][genotype]
-            distances[genotype] = pathogist.io.open_distance_file(distance_matrix_path)
+            if clustering_args['distances'][genotype] != None:
+                distance_matrix_path = clustering_args['distances'][genotype]
+                distances[genotype] = pathogist.io.open_distance_file(distance_matrix_path)
     for genotype in denovo_distances_paths:
         distances[genotype] = pathogist.io.open_distance_file(denovo_distances_paths[genotype])
     logger.info(' Finished creating distance matrices.')
@@ -578,7 +579,8 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     output_prefix = clustering_args['output_prefix']
     fine_clusterings = clustering_args['fine_clusterings']
     lp_solver = clustering_args['solver']
-
+    method = clustering_args['method']
+    presolve = clustering_args['presolve']
     # Sort the indices and columns to keep results consistent between runs
     for genotype in genotypes:
         distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
@@ -587,7 +589,7 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     for genotype in genotypes:
         logger.info(' Clustering samples based on %s data...' % genotype)
         clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
-                                                   all_constraints,solver=lp_solver)     
+                                                   all_constraints=all_constraints,method=method,presolve=presolve)     
         clusterings[genotype] = clustering
         if temp_dir is not None:
             cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
@@ -608,7 +610,8 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
         consensus_weight_matrix = None            
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings,
                                                        weight_matrix=consensus_weight_matrix,
-                                                       solver=lp_solver)
+                                                       all_constraints=all_constraints,
+                                                       method=method)
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,clusterings)
     logger.info(" Finished consensus clustering.") 
     logger.info(' Writing clusterings to file...')
@@ -663,12 +666,13 @@ def correlation(param):
     logger.debug("Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.method, param.presolve)
     logger.debug("Outputting clustering...")
+    pathogist.io.output_clustering(clustering,param.output_path)
 ''' legacy
     logger.info(" Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints)
     logger.info(" Outputting clustering...")
 '''
-    pathogist.io.output_clustering(clustering,param.output_path)
+    
 
 def consensus(param):
     logger.info(" Reading distance matrices ...")
@@ -722,10 +726,10 @@ def consensus(param):
 
     logger.info("Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.method)
-''' legacy
+    ''' legacy
     logger.info(" Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
-'''
+    '''
     summary_clustering = pathogist.cluster.summarize_clusterings(consensus_clustering,
                                                                      clusterings)
     logger.info(" Writing clusterings to file ...")
@@ -752,13 +756,13 @@ def distance(param):
             # Output error when bed is used with non SNP data types
             sys.exit('Bed option is only compatible with SNP genotype files')
     distance_matrix = create_genotype_distance[param.data_type](calls)
-'''legacy
+    '''legacy
     if param.bed == "":                                
         calls = read_genotyping_calls(param.data_type,param.calls_path)
     else:
         calls = pathogist.io.read_snp_calls_with_bed(param.calls_path,param.bed)
     distance_matrix = create_genotype_distance_matrix(param.data_type,calls)
-'''
+    '''
     if distance_matrix is not None:
         logger.info(" Writing distance matrix ...")
         pathogist.io.write_distance_matrix(distance_matrix,param.output_path)
@@ -808,12 +812,11 @@ def main():
                              help="Method for correlation clustering")
     corr_parser.add_argument("-p","--presolve", action="store_true", default=False, 
                              help="presolve the ILP")
-''' legacy
+    ''' legacy
           help = "add all constraints to the optimization problem, not just those with mixed signs.")
     corr_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
                              help="LP solver interface to use")
-'''
-
+    '''
     # Consensus clustering command line arguments
     cons_parser = subparsers.add_parser(name='consensus',
                                         help='perform consensus clustering on multiple clusterings')
@@ -830,12 +833,11 @@ def main():
                                  + " not just those with mixed signs.")
     cons_parser.add_argument("-m","--method",type=str,choices=['C4','ILP'],default='C4',
                              help="Method for consensus clustering")
-'''legacy
+    '''legacy
           help = "add all constraints to the optimization problem, not just those with mixed signs.")
     cons_parser.add_argument("-s","--solver",type=str,choices=['cplex','pulp'],default='pulp',
                              help="LP solver interface to use")
-'''
-
+    '''
     # Distance command line arguments
     distance_parser = subparsers.add_parser(name='distance', help = "construct distance matrix from "
                                                                   + "genotyping data")
