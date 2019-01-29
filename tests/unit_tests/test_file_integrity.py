@@ -22,7 +22,7 @@ class FileIntegrityTest(unittest.TestCase):
             except yaml.YAMLError:
                 print(yaml.YAMLError)
                 sys.exit(1)
-        assert pathogist.assert_config(config) == 0
+        assert pathogist.io.assert_config(config) == 0
 
     '''
     def test_fastq_input(self):
