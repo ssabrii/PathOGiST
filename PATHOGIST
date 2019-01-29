@@ -348,7 +348,8 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     for tool in run_args:
         if run_args[tool] == 1:
             run_genotyping = True
-    if run_genotyping = False:
+    if run_genotyping == False:
+       denovo_calls_dists_paths = {'distances': denovo_distances_paths,'calls': denovo_calls_paths}
        return denovo_calls_dists_paths
     forward_reads_list_path = genotyping_args['input_reads']['forward_reads']
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
