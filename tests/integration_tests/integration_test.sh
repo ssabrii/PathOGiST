@@ -12,3 +12,7 @@ python -m unittest tests/integration_tests/test_integration.py
 ./PATHOGIST run tests/integration_tests/test3_data/pathogist-run_all-test3.yaml 
 
 python -m unittest tests/integration_tests/test3_integration.py
+
+./PATHOGIST run tests/integration_tests/test4_data/pathogist-run_all-test4.yaml 
+
+python -m unittest tests/integration_tests/test4_integration.py

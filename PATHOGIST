@@ -499,11 +499,12 @@ def assert_config(config):
         #if key == "output_prefix":
             #assert "/" not in config['clustering'][key], "Output_prefix value in the clustering section cannot contain a forward slash."
         if key == "genotyping":
-            for type in config['clustering'][key]:
-                calls_path = config['clustering'][key][type]
-                if calls_path == None:
-                   continue
-                assert os.path.isfile(calls_path), "File location values in the genotyping section under clustering section must exist or be empty."
+            if config['clustering'][key] != None:
+                for type in config['clustering'][key]:
+                    calls_path = config['clustering'][key][type]
+                    if calls_path == None:
+                       continue
+                    assert os.path.isfile(calls_path), "File location values in the genotyping section under clustering section must exist or be empty."
         if key == "distances":
             for type in config['clustering'][key]:
                 dist_path = config['clustering'][key][type]
