@@ -203,22 +203,25 @@ def read_snp_calls(calls_paths, bed_path = ''):
     return calls
 '''
 
-def read_cnv_calls(call_path):
+def read_cnv_calls(calls_path):
     '''
     Read PRINCE CNV calls.
     @param calls_path: a string to the PRINCE calls file
     @rvalue calls: a dictionary whose keys are sample names, and values are CNV calls represented by 
                    a numpy array
     '''
-    calls = {}
 
-    with open(call_path,'r') as call_file:
-        # Skip the header
-        call_file.readline()
-        for line in call_file:
-            columns = line.rstrip().split('\t')
-            sample = columns[0]
-            calls[sample] = numpy.array(columns[1:],dtype=float)
+    calls = {}
+    with open(calls_path,'r') as calls_file:
+        for line in calls_file:
+            call_path = line.rstrip().split('=')[0]
+            with open(call_path,'r') as call_file:
+                # Skip the header
+                call_file.readline()
+                for line in call_file:
+                    columns = line.rstrip().split('\t')
+                    sample = columns[0]
+                    calls[sample] = numpy.array(columns[1:],dtype=float)
     assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
         "Samples do not have the same number of CNV calls."
     return calls
@@ -260,7 +263,6 @@ def read_spotype_calls(calls_paths):
         "Samples do not have the same number of Spoligotype calls."
     return calls
     
-
 
 def output_clustering(clustering,output_path):
     '''
