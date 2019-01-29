@@ -16,8 +16,8 @@ run:
   mentalist: 0
 genotyping:
   input_reads:
-    forward_reads: /home/klw17/tb_2_forward.txt
-    reverse_reads: /home/klw17/tb_2_reverse.txt
+    forward_reads: tests/integration_tests/test_data/dummy.txt
+    reverse_reads: tests/integration_tests/test_data/dummy.txt
   mentalist:
     build_db:
       options:
@@ -62,7 +62,7 @@ genotyping:
         ## coverage, novel, and multiple alleles. 
         #- output_special
   kwip:
-    kwip_path: /home/klw17/bin/kwip
+    kwip_path: tests/integration_tests/test_data/dummy.txt
     khmer_options:
       N: 1
       x: 1e9
@@ -100,7 +100,7 @@ genotyping:
       #- unmapped
   spotyping:
     # Path to SpoTyping.py file
-    path: /home/klw17/anaconda3/envs/spotyping/bin/SpoTyping.py
+    path: tests/integration_tests/test_data/dummy.txt
     options:
       #swift: on
       #min: 5
