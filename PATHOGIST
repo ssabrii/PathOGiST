@@ -471,8 +471,8 @@ def assert_config(config):
                         assert "/" not in config['genotyping'][key]['options'][option], "Output value under the spotyping section cannot contain a forward slash."                     
     #clustering section assertion
     for key in config['clustering']:
-        if key == "output_prefix":
-            assert "/" not in config['clustering'][key], "Output_prefix value in the clustering section cannot contain a forward slash."
+        #if key == "output_prefix":
+            #assert "/" not in config['clustering'][key], "Output_prefix value in the clustering section cannot contain a forward slash."
         if key == "genotyping":
             for type in config['clustering'][key]:
                 calls_path = config['clustering'][key][type]
@@ -560,8 +560,10 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
         for genotype in clustering_args['distances'].keys():
             if clustering_args['distances'][genotype] != None:
                 distance_matrix_path = clustering_args['distances'][genotype]
+                logger.info(distance_matrix_path)
                 distances[genotype] = pathogist.io.open_distance_file(distance_matrix_path)
     for genotype in denovo_distances_paths:
+        logger.info(genotype)
         distances[genotype] = pathogist.io.open_distance_file(denovo_distances_paths[genotype])
     logger.info(' Finished creating distance matrices.')
 
@@ -582,14 +584,14 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     method = clustering_args['method']
     presolve = clustering_args['presolve']
     # Sort the indices and columns to keep results consistent between runs
+    #logger.info(' Important')
     for genotype in genotypes:
+        logger.info(genotypes)
         distances[genotype] = distances[genotype].sort_index(axis=0).sort_index(axis=1)
-
     clusterings = {}
     for genotype in genotypes:
         logger.info(' Clustering samples based on %s data...' % genotype)
-        clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype],
-                                                   all_constraints=all_constraints,method=method,presolve=presolve)     
+        clustering = pathogist.cluster.correlation(distances[genotype],thresholds[genotype], all_constraints=all_constraints,method=method,presolve=presolve)     
         clusterings[genotype] = clustering
         if temp_dir is not None:
             cluster_output_path = temp_dir + ("/%s_clustering.tsv" % genotype)
@@ -662,7 +664,7 @@ def run_all(param):
 def correlation(param):
     logger.info(" Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
-
+    print(type(distance_matrix))
     logger.debug("Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.method, param.presolve)
     logger.debug("Outputting clustering...")
