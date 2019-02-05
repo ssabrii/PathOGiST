@@ -30,6 +30,7 @@ requirements:
     - snippy ==3.2
     - khmer
     - kwip
+    - vcflib
 
 test:
   commands:
