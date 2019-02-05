@@ -1,5 +1,5 @@
 import matplotlib
-import sys
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.cm as cmx
