@@ -139,7 +139,7 @@ clustering:
     spoligotyping: tests/integration_tests/test3_data/tb_5_spotyping_calls.txt
   # Bed file to filter snps before distance matrix generation( applies to both existing or newly generated snp calls).
   genotyping_options:
-    bed_filter: /home/klw17/tb_test.bed
+    bed_filter: 
   # Paths to pre-constructed distance matrices in tsv format.
   # You can also specify SNP, MLST, spoligotypoing and CNV distance matrices here if you 
   # pre-constructed them, but then they shouldn't appear in the section 'genotyping'.
