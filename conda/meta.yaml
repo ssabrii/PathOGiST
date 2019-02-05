@@ -31,7 +31,6 @@ requirements:
     - khmer
     - kwip
     - vcflib
-    - spotyping
 
 test:
   commands:
