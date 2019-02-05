@@ -8,6 +8,7 @@ import pathogist
 import pathogist.io
 import pathogist.cluster
 import yaml
+import os
 
 class FileIntegrityTest(unittest.TestCase):
 
@@ -24,11 +25,12 @@ class FileIntegrityTest(unittest.TestCase):
                 print(yaml.YAMLError)
                 sys.exit(1)
         assert pathogist.io.assert_config(config) == 0
-    def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
+
+    def test_fastq_input(self):
         forward_reads_paths = {}
         reverse_reads_paths = {}
 
-        with open(forward_reads_list_path,'r') as forwards_file:
+        with open(self.forward_path,'r') as forwards_file:
             for line in forwards_file:
                 path = line.rstrip() 
                 # basename of the FASTQ file
@@ -37,7 +39,7 @@ class FileIntegrityTest(unittest.TestCase):
                 accession = os.path.splitext(base)[0].split('_')[0]
                 forward_reads_paths[accession] = path
 
-        with open(reverse_reads_list_path,'r') as reverse_file:
+        with open(self.reverse_path,'r') as reverse_file:
             for line in reverse_file:
                 path = line.rstrip() 
                 # basename of the FASTQ file
@@ -46,11 +48,5 @@ class FileIntegrityTest(unittest.TestCase):
                 accession = os.path.splitext(base)[0].split('_')[0]
                 reverse_reads_paths[accession] = path
 
-        return forward_reads_paths, reverse_reads_paths
-
-    
-    def test_fastq_input(self):
-        forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
-                                                                        reverse_reads_list_path)
-        pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
+        assert pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths) == 0
     
