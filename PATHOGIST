@@ -619,7 +619,7 @@ def consensus(param):
         distances = pathogist.distance.match_distance_matrices(distances)
 
     logger.info("Creating and solving consensus clustering problem ...")
-    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, param.all_constraints, param.method)
+    consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings, all_constraints=param.all_constraints, method=param.method)
     ''' legacy
     logger.info(" Creating and solving consensus clustering problem ...")
     consensus_clustering = pathogist.cluster.consensus(distances,clusterings,fine_clusterings)
