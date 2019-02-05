@@ -5,7 +5,7 @@
     </requirements>
 
     <command><![CDATA[
-        PATHOGIST vis $distance $sample $pdf
+        PATHOGIST visualize $distance $sample $pdf
     ]]></command>
 
     <inputs>
