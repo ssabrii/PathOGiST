@@ -364,7 +364,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
                                                                         reverse_reads_list_path) 
-    pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
+    #pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
     combined_reads_list_path = combine_reads_lists(forward_reads_paths,
                                                    reverse_reads_paths,
                                                    temp_dir)
@@ -477,7 +477,6 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
     all_constraints = clustering_args['all_constraints'] 
     output_prefix = clustering_args['output_prefix']
     fine_clusterings = clustering_args['fine_clusterings']
-    lp_solver = clustering_args['solver']
     method = clustering_args['method']
     presolve = clustering_args['presolve']
     # Sort the indices and columns to keep results consistent between runs
