@@ -46,7 +46,7 @@ class FileIntegrityTest(unittest.TestCase):
                 accession = os.path.splitext(base)[0].split('_')[0]
                 reverse_reads_paths[accession] = path
 
-    return forward_reads_paths, reverse_reads_paths
+        return forward_reads_paths, reverse_reads_paths
 
     
     def test_fastq_input(self):
