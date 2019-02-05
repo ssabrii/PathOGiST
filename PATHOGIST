@@ -426,8 +426,7 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
             "A value in 'fine_clusterings' does not appear in 'genotyping' or 'distances'."
 
     denovo_calls_paths = denovo_calls_dists_paths['calls']
-    denovo_distances_paths = denovo_calls_dists_paths['distances']
-    print(clustering_args['genotyping']['MLST'])          
+    denovo_distances_paths = denovo_calls_dists_paths['distances']   
     # Get genotyping calls
     logger.info(' Reading genotyping calls...')
     calls = {}
@@ -558,7 +557,6 @@ def run_all(param):
 def correlation(param):
     logger.info(" Opening distance matrix...")
     distance_matrix = pathogist.io.open_distance_file(param.distance_matrix)
-    print(type(distance_matrix))
     logger.debug("Creating and solving correlation clustering problem ... ")
     clustering = pathogist.cluster.correlation(distance_matrix,param.threshold,param.all_constraints,param.method, param.presolve)
     logger.debug("Outputting clustering...")
