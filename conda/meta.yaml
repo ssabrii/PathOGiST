@@ -28,6 +28,8 @@ requirements:
     - mentalist
     - prince
     - snippy ==3.2
+    - khmer
+    - kwip
 
 test:
   commands:
