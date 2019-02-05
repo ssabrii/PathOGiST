@@ -7,18 +7,28 @@
 temp: tests/integration_tests/temp_dir
 # Number of threads on your computer
 threads: 1
-# Command line options for tools to genotype your raw reads
+# Select what tools to run: 1 to run and 0 to not run.
 run:
   snippy: 0
   kwip: 0
   prince: 0
   spotyping: 0
   mentalist: 0
+# Command line options for tools to genotype your raw reads
 genotyping:
   input_reads:
     forward_reads: /home/klw17/tb_5_forward.txt
     reverse_reads: /home/klw17/tb_5_reverse.txt
   mentalist:
+    # Choose 1 of the following option for mentalist to obtain a mlst database by selecting 1 and 0 for the others
+    db_loc:
+      local_file: 1
+      build_db: 0
+      download_pubmlst: 0
+      download_cgmlst: 0
+      download_enterobase: 0
+    local_file:
+      database: /projects/pathogist/cgMLST/MTB/Jan2019/mtb_31_Jan2019.db
     build_db:
       options:
         ## kmer size
@@ -122,7 +132,10 @@ clustering:
   # Raw genotyping data from which to create distance matrices.
   # Accepted values are paths to text files containing paths to genotyping files.
   # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE
-  genotyping: 
+  genotyping:
+  # Bed file to filter snps before distance matrix generation( applies to both existing or newly generated snp calls).
+  genotyping_options:
+    bed_filter: 
   # Paths to pre-constructed distance matrices in tsv format.
   # You can also specify SNP, MLST, spoligotypoing and CNV distance matrices here if you 
   # pre-constructed them, but then they shouldn't appear in the section 'genotyping'.
@@ -146,9 +159,9 @@ clustering:
     spoligotyping: 8
   # Use all constraints when performing correlation and consensus clustering
   all_constraints: True
-  # Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
-  solver: pulp
+  # Method to use for the clustering algorithm; choices are `C4` or `ILP`
   method: C4
   presolve: True
+  # Visualize Clusters; choices are `True` or `False`
   visualize: False
 ...

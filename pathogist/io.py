@@ -3,6 +3,8 @@ import numpy
 import re
 import os
 from collections import defaultdict
+import subprocess
+#import sys
 
 def get_sample_name(forward, reverse):
     fastq_list=[re.sub(".*/","",forward), re.sub(".*/","",reverse)]
@@ -126,82 +128,6 @@ def read_snp_calls(calls_paths, bed_path = ''):
                 continue
             calls[column] = numpy.array(snps_union[column], dtype="S20")
     return calls
-'''
-
-def read_snp_calls(calls_paths, bed_path = ''):
-    
-    ###Read SNP calls from a text file with list of Snippy tsv or snippy-core output.
-    
-    calls = {}
-    bed_filter = {}
-    if bed_path != '':
-        with open(bed_path,'r') as bed_file:
-            columns=bed_file.readline().rstrip().split('\t')
-            if columns[0].lower() != "chrom":
-                for i in range(int(columns[1]),int(columns[2])):
-                    filter_pos = columns[0]+"_"+str(i)
-                    bed_filter[filter_pos] = 1        
-            for line in bed_file:
-                columns = line.rstrip().split('\t')
-                for i in range(int(columns[1]),int(columns[2])):
-                    filter_pos = columns[0]+"_"+str(i)
-                    bed_filter[filter_pos] = 1        
-            
-    # If calls_paths is a list of paths or a text file containing the paths, do this. 
-    if isinstance(calls_paths,list) or calls_paths.endswith("txt"):
-        # collect the paths to the calls into a list
-        if isinstance(calls_paths,str):
-            calls_paths_path = calls_paths
-            calls_paths = []
-            with open(calls_paths_path,'r') as calls_paths_file:
-                for line in calls_paths_file:
-                    calls_path = line.rstrip().split('=')[0]
-                    calls_paths.append(calls_path)
-        # now get the SNP calls for each of the samples
-        ref = {}
-        sample = {}
-        pos_count = {}
-        #initialize dictionaries
-        pos_count = defaultdict(int)
-        sample = defaultdict(dict)
-        for calls_path in calls_paths:
-            with open(calls_path,'r') as calls_file:
-                for line in calls_file:
-                    # We assume that each line of the calls_file is in the form
-                    # call_path=sample_name
-                    call_path = line.rstrip().split('=')[0]
-                    with open(call_path,'r') as call_file:
-                        sample_name=call_file.readline().rstrip()
-                        sample[sample_name][-1] = -1
-                        for line in call_file:
-                            columns = line.rstrip().split('\t')
-                            #ensure there is one entry in a sample with no snps calls 
-                            sample[sample_name][-1] = -1
-                            if columns[2] == "snp":
-                                chrom_pos = columns[0]+"_"+columns[1]
-                                pos_count[chrom_pos] += 1
-                                sample[sample_name][chrom_pos] = columns[4]
-                                ref[chrom_pos] = columns[3]
-        #0 for testing
-        pos_count = {k:v for (k,v) in pos_count.items() if (v > 0 and v != len(sample.keys()) and k not in bed_filter ) }
-        for sample_name in sample.keys():
-            snps = []
-            sample_name_keys = sample[sample_name].keys()
-            for pos in pos_count.keys():
-                snps.append(sample[sample_name][pos]) if pos in sample_name_keys else snps.append(ref[pos])
-            calls[sample_name] = numpy.array(snps ,dtype="S1")    
-    # Using snippy-core output as input
-    if calls_path.endswith("tab"):
-        snps_union = pandas.read_csv(calls_path, sep='\t')
-        snps_union = snps_union.drop(['CHR','POS','Reference','LOCUS_TAG' ,'GENE', 'PRODUCT', 'EFFECT'], axis=1)
-        for column in snps_union:
-            if column == "CHROM" or column == "POS" or column == "TYPE" or column == "REF":
-                continue
-            calls[column] = numpy.array(snps_union[column], dtype="S20")
-    assert( len(set([len(calls[sample]) for sample in calls.keys()])) == 1 ), \
-        "Samples do not have the same number of SNP calls."
-    return calls
-'''
 
 def read_cnv_calls(calls_path):
     '''
@@ -282,15 +208,18 @@ def write_distance_matrix(distance_matrix,output_path):
 def assert_config(config):
     # Makes sure the configuration file is formatted correctly
     #temp directory value assertion
-    assert os.path.isdir(config['temp']), "Temp value in the config file is not a real directory"
+    assert os.path.isdir(config['temp']),\
+        "Temp value in the config file is not a real directory"
     #threads value assertion
-    assert isinstance(config['threads'], int) and config['threads'] > 0 , "Threads value in the config file must be an integer and greater than 0"
+    assert isinstance(config['threads'], int) and config['threads'] > 0 , \
+        "Threads value in the config file must be an integer and greater than 0"
     #run section assertion
     run_genotyping_tools = False
     for tool in config['run']:
         if config['run'][tool] == 1:
            run_genotyping_tools = True
-        assert config['run'][tool] == 1 or config['run'][tool] == 0, "The value for the tools under the run section must be 0 or 1 to indicate to not run and run respectively."
+        assert config['run'][tool] == 1 or config['run'][tool] == 0,\
+            "The value for the %s under the run section must be 0 or 1 to indicate to not run and run respectively." % tool
     #genotyping section assertion
     for key in config['genotyping']:
         if key == "input_reads": # add assertions
@@ -300,111 +229,220 @@ def assert_config(config):
                     if run_genotyping_tools == False:
                         continue
                     else:
-                        assert reads_path != None, "File location values in the input_reads section under genotyping section must exist when you are running genotyping tools."
+                        assert reads_path != None,\
+                            "File location values in the %s section under genotyping section must exist when you are running genotyping tools." % type
                 else:
                     if run_genotyping_tools == False:
                         continue
                     else:
-                        assert os.path.isfile(reads_path), "File location values in the input_reads section under genotyping section must exist."
+                        assert os.path.isfile(reads_path),\
+                            "File location values in the %s section under genotyping section must exist." % type
+        # mentalist section assertion                        
         if key == "mentalist" and config['run'][key] == 1:
-            if config['genotyping'][key]['build_db']['options']['fasta_files'] != None:
-                assert isinstance(config['genotyping'][key]['build_db']['options']['k'], int) and config['genotyping'][key]['build_db']['options']['k'] > 0, "k value in build_db under mentalist must be an integer and greater than 0"
-                assert os.path.isfile(config['genotyping'][key]['build_db']['options']['fasta_files']), "fasta_file value in build_db under mentalist must be a file path that exists"
-                assert os.path.isfile(config['genotyping'][key]['build_db']['options']['profile']), "profile value in build_db under mentalist must be a file path that exists"
-            if config['genotyping'][key]['download_pubmlst']['options']['scheme'] != None:
-                assert isinstance(config['genotyping'][key]['download_pubmlst']['options']['k'], int) and config['genotyping'][key]['download_pubmlst']['options']['k'] > 0, "k value in download_pubmlst under mentalist must be an integer and greater than 0"
-            #assert isinstance(config['genotyping'][key]['download_pubmlst']['options']['scheme'], int) or ['?','/','[',']',], "k value in build_db under mentalist must be an integer and greater than 0"
-            if config['genotyping'][key]['download_cgmlst']['options']['scheme'] != None:
-                assert isinstance(config['genotyping'][key]['download_cgmlst']['options']['k'], int) and config['genotyping'][key]['download_cgmlst']['options']['k'] > 0, "k value in download_cgmlst under mentalist must be an integer and greater than 0"
-            if config['genotyping'][key]['download_enterobase']['options']['scheme'] != None:            
-                assert isinstance(config['genotyping'][key]['download_enterobase']['options']['k'], int) and config['genotyping'][key]['download_enterobase']['options']['k'] > 0, "k value in download_enterobase under mentalist must be an integer and greater than 0"
-                for type in config['genotyping'][key]['download_enterobase']['options']['type']:
-                    assert type in ['cg', 'wg'], "cg and wgs are the only values allowed in the type section of download_enterobase under mentalist"
-            if config['genotyping'][key]['call']['options'] != None:             
-                assert isinstance(config['genotyping'][key]['call']['options']['mutation_threshold'], int) and config['genotyping'][key]['call']['options']['mutation_threshold'] >= 0, "mutation_threshold value in call under mentalist must be an integer and greater than or equal to 0"
-                assert isinstance(config['genotyping'][key]['call']['options']['kt'], int) and config['genotyping'][key]['call']['options']['kt'] > 1, "kt value in call under mentalist must be an integer and greater than 0"
+            #db_loc section assertion
+            db_loc = False
+            db_loc_count = 0
+            for type in config['genotyping'][key]['db_loc']:
+                assert config['genotyping'][key]['db_loc'][type] == 1 or config['genotyping'][key]['db_loc'][type] == 0,\
+                    "The value for the %s under the db_loc section must be 0 or 1 to indicate where to locate mentalist db." % type
+                if config['genotyping'][key]['db_loc'][type] == 1:
+                    db_loc = True
+                    db_loc_count += 1
+            assert db_loc_count == 1,\
+                "Choose only 1 of the options under db_loc for mentalist to obtain mlst database"
+            assert db_loc == True, \
+                "Choose 1 of the options under db_loc for mentalist to obtain mlst database by inputting 1"
+            #local file section assertion
+            if config['genotyping'][key]['db_loc']['local_file'] == 1:
+                assert config['genotyping']['mentalist']['local_file']['database'] != None,\
+                    "Database file value under mentalist section cannot be empty"
+                assert os.path.isfile(config['genotyping']['mentalist']['local_file']['database']),\
+                    "Database file value must mentalist section exist"
+            # build_db assertion
+            if config['genotyping'][key]['db_loc']['build_db'] == 1:
+                assert isinstance(config['genotyping'][key]['build_db']['options']['k'], int) and config['genotyping'][key]['build_db']['options']['k'] > 0,\
+                    "k value in build_db under mentalist must be an integer and greater than 0"
+                assert os.path.isfile(config['genotyping'][key]['build_db']['options']['fasta_files']),\
+                    "fasta_file value in build_db under mentalist must be a file path that exists"
+                assert os.path.isfile(config['genotyping'][key]['build_db']['options']['profile']),\
+                    "profile value in build_db under mentalist must be a file path that exists"
+            # download_pubmlst assertion
+            if config['genotyping'][key]['db_loc']['download_pubmlst'] == 1:
+                assert isinstance(config['genotyping'][key]['download_pubmlst']['options']['k'], int) and config['genotyping'][key]['download_pubmlst']['options']['k'] > 0,\
+                    "k value in download_pubmlst under mentalist must be an integer and greater than 0"
+                assert config['genotyping'][key]['download_pubmlst']['options']['scheme']!= None, \
+                    "Scheme cannot be none under download_mlst section"
+            # download_cgmlst assertion
+            if config['genotyping'][key]['db_loc']['download_cgmlst'] == 1:
+                assert isinstance(config['genotyping'][key]['download_cgmlst']['options']['k'], int) and config['genotyping'][key]['download_cgmlst']['options']['k'] > 0,\
+                    "k value in download_cgmlst under mentalist must be an integer and greater than 0"
+                assert config['genotyping'][key]['download_cgmlst']['options']['scheme']!= None, \
+                    "Scheme cannot be none under download_cgmlst section"
+            # download_enterobase assertion
+            if config['genotyping'][key]['db_loc']['download_enterobase'] == 1:            
+                assert isinstance(config['genotyping'][key]['download_enterobase']['options']['k'], int) and config['genotyping'][key]['download_enterobase']['options']['k'] > 0,\
+                    "k value in download_enterobase under mentalist must be an integer and greater than 0"
+                assert config['genotyping'][key]['download_enterobase']['options']['scheme']!= None, \
+                    "Scheme cannot be none under download_enterobase section"
+                assert config['genotyping'][key]['download_enterobase']['options']['type'] in ['cg', 'wg'],\
+                    "cg and wgs are the only values allowed in the type section of download_enterobase under mentalist"
+            # call assertions             
+            assert isinstance(config['genotyping'][key]['call']['options']['mutation_threshold'], int) and config['genotyping'][key]['call']['options']['mutation_threshold'] >= 0,\
+                "mutation_threshold value in call under mentalist must be an integer and greater than or equal to 0"
+            assert isinstance(config['genotyping'][key]['call']['options']['kt'], int) and config['genotyping'][key]['call']['options']['kt'] > 1,\
+                "kt value in call under mentalist must be an integer and greater than 0"
             if config['genotyping'][key]['call']['flags'] != None: 
                 for flag in config['genotyping'][key]['call']['flags']:
-                    assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"        
+                    assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"
+        # kwip assertions					
         if key == "kwip" and config['run'][key] == 1:
-            if config['genotyping'][key]['kwip_path'] == None:
-                assert config['genotyping'][key]['kwip_path'] != None, "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
-            assert os.path.isfile(config['genotyping'][key]['kwip_path']), "kWIP Binary location values for kwip_path must exist."
+            assert config['genotyping'][key]['kwip_path'] != None,\
+                "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
+            assert os.path.isfile(config['genotyping'][key]['kwip_path']),\
+                "kWIP Binary location values for kwip_path must exist."
             if config['genotyping'][key]['kwip_options'] != None:
                 if config['genotyping'][key]['kwip_options']['weights'] != None:
-                    assert os.path.isfile(config['genotyping'][key]['kwip_options']['weights']), "Weights in the kwip section under genotyping section must exist."
+                    assert os.path.isfile(config['genotyping'][key]['kwip_options']['weights']),\
+                        "Weights in the kwip section under genotyping section must exist."
             if config['genotyping'][key]['kwip_flags'] != None:
                 for flag in config['genotyping'][key]['kwip_flags']:
-                    assert flag in ['unweighted', 'calc_weights'], "unweighted and calc_weights are the only flags allowed in the kwip_flags section"            
+                    assert flag in ['unweighted', 'calc_weights'],\
+                        "unweighted and calc_weights are the only flags allowed in the kwip_flags section"
+        # prince assertions					
         if key == "prince" and config['run'][key] == 1:
             if config['genotyping'][key]['options'] != None:
                 if config['genotyping'][key]['options']['templates'] != None:
-                    assert os.path.isfile(config['genotyping'][key]['options']['templates']), "Templates in the prince section under genotyping section must exist."
+                    assert os.path.isfile(config['genotyping'][key]['options']['templates']),\
+                        "Templates in the prince section under genotyping section must exist."
+        # snippy assertions
         if key == "snippy" and config['run'][key] == 1:
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
-                    assert flag in ['unmapped'], "unmapped is the only flag allowed in the snippy section"
+                    assert flag in ['unmapped'],\
+                        "unmapped is the only flag allowed in the snippy section"
             if config['genotyping'][key]['options'] != None:
                 for option in config['genotyping'][key]['options']:
                     if option == "reference":
-                        assert os.path.isfile(config['genotyping'][key]['options'][option]), "Reference value in the snippy section under genotyping section must exist."
+                        assert os.path.isfile(config['genotyping'][key]['options'][option]),\
+                            "Reference value in the snippy section under genotyping section must exist."
                     if option == "mapqual":
-                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0, "mapqual values under snippy section must be integer or float and be greater or equal to 0"
+                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0,\
+                            "mapqual values under snippy section must be integer or float and be greater or equal to 0"
                     if option == "basequal":
-                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0, "basequal values under snippy section must be integer or float and be greater or equal to 0"
+                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0,\
+                            "basequal values under snippy section must be integer or float and be greater or equal to 0"
                     if option == "mincov":
-                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0, "mincov values under snippy section must be integer or float and be greater or equal to 0"
+                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0,\
+                            "mincov values under snippy section must be integer or float and be greater or equal to 0"
                     if option == "minfrac":
-                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0 and config['genotyping'][key]['options'][option] <= 1, "minfrac values under snippy section must be integer or float and be between 0 and 1"
+                        assert (isinstance(config['genotyping'][key]['options'][option], int) or isinstance(config['genotyping'][key]['options'][option], float))  and  config['genotyping'][key]['options'][option] >= 0 and config['genotyping'][key]['options'][option] <= 1,\
+                            "minfrac values under snippy section must be integer or float and be between 0 and 1"
+        # spotyping assertions
         if key == "spotyping" and config['run'][key] == 1:
             if config['genotyping'][key]['path'] == None:
-                assert config['genotyping'][key]['path'] != None, "SpoTyping python file location values for path must exist if you want to run spotyping"
-            assert os.path.isfile(config['genotyping'][key]['path']), "SpoTyping python file location values for path must exist."
+                assert config['genotyping'][key]['path'] != None,\
+                    "SpoTyping python file location values for path must exist if you want to run spotyping"
+            assert os.path.isfile(config['genotyping'][key]['path']),\
+                "SpoTyping python file location values for path must exist."
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
-                    assert flag in ['seq','noQuery','filter','sorted'], "seq, noQuery, filter, and sorted are the only flag allowed in the snippy section. Please look at the original config file for formatting"
+                    assert flag in ['seq','noQuery','filter','sorted'],\
+                        "seq, noQuery, filter, and sorted are the only flag allowed in the snippy section. Please look at the original config file for formatting"
             if config['genotyping'][key]['options'] != None:
                 for option in config['genotyping'][key]['options']:
                     if option == "swift":
-                        assert config['genotyping'][key]['options'][option] == "on" or config['genotyping'][key]['options'][option] == "off", "Swift value in the spotyping section must be on or off." 
+                        assert config['genotyping'][key]['options'][option] == "on" or config['genotyping'][key]['options'][option] == "off",\
+                            "Swift value in the spotyping section must be on or off." 
                     if option == "min":
-                        assert  isinstance(config['genotyping'][key]['options'][option], int) and config['genotyping'][key]['options'][option] >= 0, "min value in the spotyping section must an integer and greater than 0."         
+                        assert  isinstance(config['genotyping'][key]['options'][option], int) and config['genotyping'][key]['options'][option] >= 0,\
+                            "min value in the spotyping section must an integer and greater than 0."         
                     if option == "rmin":
-                        assert  isinstance(config['genotyping'][key]['options'][option], int) and config['genotyping'][key]['options'][option] >= 0, "rmin value in the spotyping section must an integer and greater than 0." 
+                        assert  isinstance(config['genotyping'][key]['options'][option], int) and config['genotyping'][key]['options'][option] >= 0,\
+                            "rmin value in the spotyping section must an integer and greater than 0." 
                     if option == "outdir":
-                        assert os.path.isdir(config['genotyping'][key]['options'][option]), "outdir value under the spotyping section in the config file is not a real directory. If error persists, try using the full directory path"
+                        assert os.path.isdir(config['genotyping'][key]['options'][option]),\
+                            "outdir value under the spotyping section in the config file is not a real directory. If error persists, try using the full directory path"
                     if option == "output":
-                        assert "/" not in config['genotyping'][key]['options'][option], "Output value under the spotyping section cannot contain a forward slash."                     
-    #clustering section assertion
+                        assert "/" not in config['genotyping'][key]['options'][option],\
+                            "Output value under the spotyping section cannot contain a forward slash."                     
+    # clustering section assertion
     for key in config['clustering']:
-        #if key == "output_prefix":
-            #assert "/" not in config['clustering'][key], "Output_prefix value in the clustering section cannot contain a forward slash."
+        if key == "output_prefix":
+            assert config['clustering'][key] != None,\
+                "Output_prefix value in the clustering section cannot be None."
         if key == "genotyping":
             if config['clustering'][key] != None:
                 for type in config['clustering'][key]:
                     calls_path = config['clustering'][key][type]
                     if calls_path == None:
                        continue
-                    assert os.path.isfile(calls_path), "File location values in the genotyping section under clustering section must exist or be empty."
+                    assert os.path.isfile(calls_path),\
+                        "File location values in the genotyping section under clustering section must exist or be empty."
+        if key == "genotyping_options":
+            if config['clustering'][key]['bed_filter'] != None:
+                os.path.isfile(config['clustering'][key]['bed_filter']),\
+                    "File location values in the bed_filter section under clustering section must exist or be empty."
         if key == "distances":
             for type in config['clustering'][key]:
                 dist_path = config['clustering'][key][type]
                 if dist_path == None:
                    continue
-                assert os.path.isfile(dist_path), "File location values in the distances section under clustering section must exist or be empty."
+                assert os.path.isfile(dist_path),\
+                    "File location values in the distances section under clustering section must exist or be empty."
         if key == "fine_clusterings":
-            assert config['clustering'][key] != None, "fine_clusterings values must be a combination of at least 1 SNP, kWIP, MLST, CNV, and spoligotyping"
+            assert config['clustering'][key] != None,\
+                "fine_clusterings values must be a combination of at least 1 SNP, kWIP, MLST, CNV, and spoligotyping"
             for type in config['clustering'][key]:
-                assert type in ['SNP','kWIP','MLST','CNV','spoligotyping'], "fine_clusterings values must be a combination of at least 1 SNP, kWIP, MLST, CNV, and spoligotyping"
+                assert type in ['SNP','kWIP','MLST','CNV','spoligotyping'],\
+                    "fine_clusterings values must be a combination of at least 1 SNP, kWIP, MLST, CNV, and spoligotyping"
         if key == "thresholds":
             for type in config['clustering'][key]:
-                assert(isinstance(config['clustering'][key][type], int) or isinstance(config['clustering'][key][type], float))  and  config['clustering'][key][type] >= 0, "Threshold values under clustering section must be integer or float and be greater or equal to 0"
+                assert(isinstance(config['clustering'][key][type], int) or isinstance(config['clustering'][key][type], float))  and  config['clustering'][key][type] >= 0,\
+                    "Threshold values under clustering section must be integer or float and be greater or equal to 0"
         if key == "all_constraints":
-            assert config['clustering'][key] == True or config['clustering'][key] == False, "all_constraints values must be either True or False"
-        if key == "solver":
-            assert config['clustering'][key] == "pulp" or config['clustering'][key] == "c4" or config['clustering'][key] == "cplex", "Solver values must be either cplex or c4"
+            assert config['clustering'][key] == True or config['clustering'][key] == False,\
+                "all_constraints values must be either True or False"
+        if key == "method":
+            assert config['clustering'][key] == "ILP" or config['clustering'][key] == "C4",\
+                "Method values must be either ILP or c4"
         if key == "visualize":
-            assert config['clustering'][key] == True or config['clustering'][key] == False, "visualize values must be either True or False"
+            assert config['clustering'][key] == True or config['clustering'][key] == False,\
+                "visualize values must be either True or False"
     return 0
                     
+def get_bases_and_reads_number(fastq_path):
+    if fastq_path.rstrip().split('.')[-1] == 'gz':
+        cmd="zcat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
+        cmd2="zcat " + fastq_path + "|wc -l"
+    else:
+        cmd="cat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
+        cmd2="cat " + fastq_path + "|wc -l"
+    ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    ps2 = subprocess.Popen(cmd2,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    output = ps.communicate()[0]
+    output2 = ps2.communicate()[0]
+    reads = output.decode("utf-8").rstrip().split(" ")[0]
+    bases = output.decode("utf-8").rstrip().split(" ")[1]
+    lines = output2.decode("utf-8").rstrip()
+    return reads, bases, lines
+    
+def check_fastq_input(forward_reads_paths,reverse_reads_paths):
+    if len(forward_reads_paths) != len(reverse_reads_paths):
+        sys.exit('Error! Check your fastq input files. They do not contain the same number of forward and reverse reads')
+    shared_samples = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
+    if len(forward_reads_paths) != len(shared_samples) or len(reverse_reads_paths) != len(shared_samples):
+        sys.exit('Error! Check your fastq input files. The forward and reverse reads contain different samples')
+    for sample in shared_samples:
+        reads_forward, bases_forward, lines_forward = get_bases_and_reads_number(forward_reads_paths[sample])
+        reads_reverse, bases_reverse, lines_reverse = get_bases_and_reads_number(reverse_reads_paths[sample])
+        if reads_forward != reads_reverse:
+            print(sample)
+            sys.exit('Error! Check your fastq input files. The sample contains different number of reads')
+        if bases_forward != bases_reverse:
+            print(sample)
+            sys.exit('Error! Check your fastq input files. The sample contains different number of bases')
+        if abs(int(lines_forward) - int(lines_reverse)) > 1:
+            print(sample)
+            sys.exit('Error! Check your fastq input files. The sample contains different number of lines')
+    return 0
             

@@ -21,7 +21,7 @@ import pathogist.visualize
 
 logger = logging.getLogger()
 
-def read_genotyping_calls(genotype,calls_path):
+def read_genotyping_calls(genotype,calls_path,clustering_args):
     read_calls_functions = {'SNP': pathogist.io.read_snp_calls,
                             'MLST': pathogist.io.read_mlst_calls,
                             'CNV': pathogist.io.read_cnv_calls,
@@ -29,7 +29,11 @@ def read_genotyping_calls(genotype,calls_path):
                            } 
     assert(genotype in read_calls_functions.keys()),\
         "Error: genotype datatype %s not supported." % genotype
-    return read_calls_functions[genotype](calls_path)
+    bed_path = clustering_args['genotyping_options']['bed_filter']
+    if  bed_path != None and genotype == 'SNP':
+        return read_calls_functions[genotype](calls_path, bed_path=bed_path)
+    else:
+        return read_calls_functions[genotype](calls_path)
 
 def create_genotype_distance_matrix(genotype,calls):
     create_distance_functions = {'SNP': pathogist.distance.create_snp_distance_matrix,
@@ -121,11 +125,13 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
     # Get the accessions
     accessions = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     logger.info("Running MentaLiST...")
+    if mentalist_args['db_loc']['local_file'] == 1:
+        return run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, mentalist_args['local_file']['database'])
 
     # Run any one of the database building mentalist subcommands
     db_path = "%s/mlst.db" % temp_dir
     for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
-        if subcmd in mentalist_args:
+        if mentalist_args['db_loc'][subcmd] == 1:
             subcmd_options = mentalist_args[subcmd]['options']
             mentalist_command = ['mentalist',subcmd,
                                  '--db','%s' % db_path,
@@ -153,6 +159,10 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
             logger.info("Finished constructing database.")
 
     # Run the mentalist call subcommand
+    return run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, db_path)
+    
+	
+def run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, db_path):
     mentalist_calls_paths = [] # the paths to the MLST call files
     for accession in accessions:
         call_path = '%s/%s_mlst.call' % (temp_dir,accession)
@@ -160,7 +170,6 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
         call_command = ['mentalist','call']
         call_command.extend(['--db', db_path])
         call_command.extend(['-o', call_path])
-        call_command.extend(['--threads', str(threads)])
 
         # Add input reads path to mentalist call command
         call_command.extend(['-1', forward_reads_paths[accession]])
@@ -340,35 +349,7 @@ def get_reads_paths_from_list(forward_reads_list_path,reverse_reads_list_path):
             reverse_reads_paths[accession] = path
 
     return forward_reads_paths, reverse_reads_paths
-'''
-def check_fastq_input(forward_reads_paths,reverse_reads_paths):
-    if len(forward_reads_paths) != len(reverse_reads_paths):
-        sys.exit('Error! Check your fastq input files. They do not contain the same number of forward and reverse reads')
-    shared_samples = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
-    if len(forward_reads_paths) != len(shared_samples) or len(reverse_reads_paths) != len(shared_samples):
-        sys.exit('Error! Check your fastq input files. The forward and reverse reads contain different samples')
-    for sample in shared_samples:
-        reads_forward, bases_forward = get_bases_and_reads_number(forward_reads_paths[sample])
-        reads_reverse, bases_reverse = get_bases_and_reads_number(reverse_reads_paths[sample])
-        if reads_forward != reads_reverse:
-            print(sample)
-            sys.exit('Error! Check your fastq input files. The sample contains different number of reads')
-        if bases_forward != bases_reverse:
-            print(sample)
-            sys.exit('Error! Check your fastq input files. The sample contains different number of bases')
-    return 0
-    
-def get_bases_and_reads_number(fastq_path):
-    if fastq_path.rstrip().split('.')[-1] == 'gz':
-        cmd="zcat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
-    else:
-        cmd="cat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
-    ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    output = ps.communicate()[0]
-    reads = output.decode("utf-8").rstrip().split(" ")[0]
-    bases = output.decode("utf-8").rstrip().split(" ")[1]
-    return reads, bases
-'''
+
 def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     denovo_calls_paths = {}
     denovo_distances_paths = {}
@@ -383,7 +364,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
                                                                         reverse_reads_list_path) 
-    #check_fastq_input(forward_reads_paths, reverse_reads_paths)
+    pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
     combined_reads_list_path = combine_reads_lists(forward_reads_paths,
                                                    reverse_reads_paths,
                                                    temp_dir)
@@ -446,7 +427,7 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
 
     denovo_calls_paths = denovo_calls_dists_paths['calls']
     denovo_distances_paths = denovo_calls_dists_paths['distances']
-        
+    print(clustering_args['genotyping']['MLST'])          
     # Get genotyping calls
     logger.info(' Reading genotyping calls...')
     calls = {}
@@ -454,16 +435,16 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
         for genotype in clustering_args['genotyping'].keys():
             calls_path = clustering_args['genotyping'][genotype]
             if calls_path != None:
-                calls[genotype] = read_genotyping_calls(genotype,calls_path)
+                calls[genotype] = read_genotyping_calls(genotype,calls_path,clustering_args)
     for genotype in denovo_calls_paths:
-        calls[genotype] = read_genotyping_calls(genotype,denovo_calls_paths[genotype])
+        calls[genotype] = read_genotyping_calls(genotype,denovo_calls_paths[genotype],clustering_args)
     logger.info(' Finished reading genotyping calls.')
 
     # Create distance matrices from calls
     logger.info(' Creating distance matrices...')
     distances = {}
     for genotype in calls:
-        distance_matrix = create_genotype_distance_matrix(genotype,calls[genotype])
+        distance_matrix = create_genotype_distance_matrix(genotype, calls[genotype])
         distances[genotype] = distance_matrix
         if temp_dir is not None:
             dist_output_path = temp_dir + ("/%s_distance_matrix.tsv" % genotype) 
@@ -471,7 +452,6 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
                         % (genotype,dist_output_path)) 
             pathogist.io.write_distance_matrix(distance_matrix,dist_output_path) 
     logger.info(" Finished creating distance matrices.")
-    #sys.exit()
     # Read pre-constructed distance matrices
     logger.info(' Reading distance matrices...')
     if isinstance(clustering_args['distances'],dict):
