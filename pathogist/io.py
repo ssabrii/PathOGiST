@@ -294,7 +294,7 @@ def assert_config(config):
             if config['genotyping'][key]['call']['flags'] != None: 
                 for flag in config['genotyping'][key]['call']['flags']:
                     assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"
-        # kwip assertions					
+        # kwip assertions                    
         if key == "kwip" and config['run'][key] == 1:
             assert config['genotyping'][key]['kwip_path'] != None,\
                 "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
@@ -308,7 +308,7 @@ def assert_config(config):
                 for flag in config['genotyping'][key]['kwip_flags']:
                     assert flag in ['unweighted', 'calc_weights'],\
                         "unweighted and calc_weights are the only flags allowed in the kwip_flags section"
-        # prince assertions					
+        # prince assertions                    
         if key == "prince" and config['run'][key] == 1:
             if config['genotyping'][key]['options'] != None:
                 if config['genotyping'][key]['options']['templates'] != None:
@@ -376,6 +376,18 @@ def assert_config(config):
                     calls_path = config['clustering'][key][type]
                     if calls_path == None:
                        continue
+                    if type == 'SNP' and config['run']['snippy'] == 1:
+                        assert False,\
+                            "You've selected to run snippy in the genotyping section and supplied a list of SNP calls. Please choose only one"
+                    if type == 'MLST' and config['run']['mentalist'] == 1:
+                        assert False,\
+                            "You've selected to run mentalist in the genotyping section and supplied a list of MLST calls. Please choose only one"
+                    if type == 'CNV' and config['run']['prince'] == 1:
+                        assert False,\
+                            "You've selected to run prince in the genotyping section and supplied a list of CNV calls. Please choose only one"
+                    if type == 'spoligotyping' and config['run']['spotyping'] == 1:
+                        assert False,\
+                            "You've selected to run spotyping in the genotyping section and supplied a list of spoligotyping calls. Please choose only one"
                     assert os.path.isfile(calls_path),\
                         "File location values in the genotyping section under clustering section must exist or be empty."
         if key == "genotyping_options":
@@ -387,6 +399,21 @@ def assert_config(config):
                 dist_path = config['clustering'][key][type]
                 if dist_path == None:
                    continue
+                if type == 'SNP' and config['run']['snippy'] == 1:
+                    assert False,\
+                        "You've selected to run snippy in the genotyping section and supplied a SNP distance matrix. Please choose only one"
+                if type == 'MLST' and config['run']['mentalist'] == 1:
+                    assert False,\
+                        "You've selected to run mentalist in the genotyping section and supplied a MLST distance matrix. Please choose only one"
+                if type == 'CNV' and config['run']['prince'] == 1:
+                    assert False,\
+                        "You've selected to run prince in the genotyping section and supplied a CNV distance matrix. Please choose only one"
+                if type == 'spoligotyping' and config['run']['spotyping'] == 1:
+                    assert False,\
+                        "You've selected to run spotyping in the genotyping section and supplied a spoligotyping distance matrix. Please choose only one"
+                if type == 'kWIP' and config['run']['kwip'] == 1:
+                    assert False,\
+                        "You've selected to run kwip in the genotyping section and supplied a kwip distance matrix. Please choose only one"
                 assert os.path.isfile(dist_path),\
                     "File location values in the distances section under clustering section must exist or be empty."
         if key == "fine_clusterings":
