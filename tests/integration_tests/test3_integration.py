@@ -23,5 +23,5 @@ class IntegrationTest(unittest.TestCase):
     def test_integration(self):
         try:
             pandas.testing.assert_frame_equal(self.clustering.sort_index(axis=1),self.true_clustering.sort_index(axis=1))
-	except:
-	    pandas.testing.assert_frame_equal(self.clustering.sort_index(axis=1),self.true_clustering_2.sort_index(axis=1))
+        except:
+            pandas.testing.assert_frame_equal(self.clustering.sort_index(axis=1),self.true_clustering_2.sort_index(axis=1))
