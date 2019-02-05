@@ -5,7 +5,7 @@ package:
 
 source:
   url: https://github.com/WGS-TB/PathOGiST/archive/v{{ version }}.tar.gz
-  sha256: 0989bc086f2309413b348436d3152e1dca7c84f5a3b870d8322253b216633ce4
+  sha256: 323b959a0261f2856a02176faa716fa40ca3988025dee88d6eef03c9079bb325
 
 build:
   number: 0
