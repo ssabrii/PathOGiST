@@ -364,7 +364,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
     reverse_reads_list_path = genotyping_args['input_reads']['reverse_reads']
     forward_reads_paths,reverse_reads_paths = get_reads_paths_from_list(forward_reads_list_path,
                                                                         reverse_reads_list_path) 
-    #pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
+    pathogist.io.check_fastq_input(forward_reads_paths, reverse_reads_paths)
     combined_reads_list_path = combine_reads_lists(forward_reads_paths,
                                                    reverse_reads_paths,
                                                    temp_dir)
