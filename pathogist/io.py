@@ -439,19 +439,13 @@ def assert_config(config):
                     
 def get_bases_and_reads_number(fastq_path):
     if fastq_path.rstrip().split('.')[-1] == 'gz':
-        cmd="zcat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
-        cmd2="zcat " + fastq_path + "|wc -l"
+        cmd="zcat " + fastq_path + "|wc -l"
     else:
-        cmd="cat " + fastq_path + "|paste - - - -|cut -f2|wc -c -l"
-        cmd2="cat " + fastq_path + "|wc -l"
+        cmd="cat " + fastq_path + "|wc -l"
     ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    ps2 = subprocess.Popen(cmd2,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     output = ps.communicate()[0]
-    output2 = ps2.communicate()[0]
-    reads = output.decode("utf-8").rstrip().split(" ")[0]
-    bases = output.decode("utf-8").rstrip().split(" ")[1]
-    lines = output2.decode("utf-8").rstrip()
-    return reads, bases, lines
+    lines = output.decode("utf-8").rstrip()
+    return lines
     
 def check_fastq_input(forward_reads_paths,reverse_reads_paths):
     if len(forward_reads_paths) != len(reverse_reads_paths):
@@ -459,17 +453,14 @@ def check_fastq_input(forward_reads_paths,reverse_reads_paths):
     shared_samples = set(forward_reads_paths.keys()).union(reverse_reads_paths.keys())
     if len(forward_reads_paths) != len(shared_samples) or len(reverse_reads_paths) != len(shared_samples):
         sys.exit('Error! Check your fastq input files. The forward and reverse reads contain different samples')
+    bad_samples = []
     for sample in shared_samples:
-        reads_forward, bases_forward, lines_forward = get_bases_and_reads_number(forward_reads_paths[sample])
-        reads_reverse, bases_reverse, lines_reverse = get_bases_and_reads_number(reverse_reads_paths[sample])
-        if reads_forward != reads_reverse:
-            print(sample)
-            sys.exit('Error! Check your fastq input files. The sample contains different number of reads')
-        if bases_forward != bases_reverse:
-            print(sample)
-            sys.exit('Error! Check your fastq input files. The sample contains different number of bases')
-        if abs(int(lines_forward) - int(lines_reverse)) > 1:
-            print(sample)
-            sys.exit('Error! Check your fastq input files. The sample contains different number of lines')
+        lines_forward = get_bases_and_reads_number(forward_reads_paths[sample])
+        lines_reverse = get_bases_and_reads_number(reverse_reads_paths[sample])
+        if abs(int(lines_forward) - int(lines_reverse)) > 1 or int(lines_forward)%4 != 0 or int(lines_reverse)%4 != 0:
+            bad_sample.append(sample)
+    if bad_samples != [] :
+        print(bad_samples)
+        sys.exit('Error! Check your fastq input files. The sample contains different number of lines or lines not divisible by four')
     return 0
             
