@@ -5,12 +5,70 @@
     </requirements>
 
     <command><![CDATA[
-        $__tool_directory__/concatenator -n #for $path in $paths# ${path.element_identifier} #end for#
-        -i #for $path in $paths# $path #end for#
+        $__tool_directory__/concatenator
+
+        #if $input_type.input_type_selector == "variant"
+            variant
+            -n #for $path in $input_type.paths# ${path.element_identifier} #end for#
+            -i #for $path in $input_type.paths# $path #end for#
+        #elif $input_type.input_type_selector == "clustering"
+            cluster
+            #if $input_type.mlst.mlst_checkbox
+                --mlst $input_type.mlst.mlst_path
+            #end if
+            #if $input_type.snp.snp_checkbox
+                --snp $input_type.snp.snp_path
+            #end if
+            #if $input_type.cnv.cnv_checkbox
+                --cnv $input_type.cnv.cnv_path
+            #end if
+            #if $input_type.spoligo.spoligo_checkbox
+                --spoligo $input_type.spoligo.spoligo_path
+            #end if
+         #end if
     ]]></command>
 
+
     <inputs>
-        <param name="paths" type="data" label="Collection of calls" help="" optional="False" multiple="True"/>
+        <conditional name="input_type">
+            <param name="input_type_selector" type="select" label="Concatenation of variant calls, or clustering files">
+                <option value="variant">Variant Call Files</option>
+                <option value="clustering">Clustering/Distance Matrix Files</option>
+            </param>
+            <when value="variant">
+                <param name="paths" type="data" label="Collection of calls" help="" optional="False" multiple="True"/>
+            </when>
+            <when value="clustering">
+                <conditional name="mlst">
+                    <param name="mlst_checkbox" type="boolean" label="Include MLST"/>
+                    <when value="true">
+                        <param name="mlst_path" type="data" label="MLST Clustering/Distance Matrix file"
+                               format="txt,tabular"/>
+                    </when>
+                </conditional>
+                <conditional name="snp">
+                    <param name="snp_checkbox" type="boolean" label="Include SNP"/>
+                    <when value="true">
+                        <param name="snp_path" type="data" label="SNP Clustering/Distance Matrix file"
+                               format="txt,tabular"/>
+                    </when>
+                </conditional>
+                <conditional name="cnv">
+                    <param name="cnv_checkbox" type="boolean" label="Include CNV"/>
+                    <when value="true">
+                        <param name="cnv_path" type="data" label="CNV Clustering/Distance Matrix file"
+                               format="txt,tabular"/>
+                    </when>
+                </conditional>
+                <conditional name="spoligo">
+                    <param name="spoligo_checkbox" type="boolean" label="Include Spoligotyping"/>
+                    <when value="true">
+                        <param name="spoligo_path" type="data" label="Spoligotyping Clustering/Distance Matrix file"
+                               format="txt,tabular"/>
+                    </when>
+                </conditional>
+            </when>
+        </conditional>
     </inputs>
 
     <outputs>
