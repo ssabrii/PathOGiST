@@ -12,6 +12,7 @@ import collections
 import pkg_resources
 import shutil
 import yaml
+import urllib.request as urllib
 
 import pathogist
 import pathogist.cluster
@@ -519,15 +520,21 @@ def call_clustering_commands(clustering_args,run_args,denovo_calls_dists_paths,t
         pathogist.visualize.visualize_clusterings(summary_clustering,
                                                   output_prefix=visual_output_prefix,
                                                   mode='spring')
-def run_all(param):
+
+
+def run_all(param, major, minor):
     '''
     Run the entire PathOGiST pipeline from genotyping to consensus clustering, or create
     a new configuration file.
     '''
     if param.new_config:
-        # Copy the default configuration file to whereever the user has specified
-        src_path = pkg_resources.resource_filename(__name__,'pathogist/resources/blank_config.yaml') 
-        shutil.copyfile(src_path,param.config) 
+        # Copy the default configuration file to wherever the user has specified
+        try:
+            src_path = pkg_resources.resource_filename(__name__,'pathogist/resources/blank_config.yaml')
+            shutil.copyfile(src_path,param.config)
+        except IOError:
+            urllib.urlretrieve("https://github.com/WGS-TB/PathOGiST/releases/download/v{0}.{1}/blank_config.yaml"
+                               .format(major, minor), param.config)
         print("New configuration file written at %s" % param.config)
     else:
         with open(param.config,'r') as config_stream:
@@ -673,8 +680,8 @@ def visualize(param):
         pathogist.visualize.visualize_clusterings(summary_clustering,mode='spring')
 
 def main():
-    MAJOR_VERSION = 1
-    MINOR_VERSION = 0
+    MAJOR_VERSION = 0
+    MINOR_VERSION = 3
 
     parser = argparse.ArgumentParser(description=('PathOGiST Version %d.%d\n' +
                     'Copyright (C) 2018 Leonid Chindelevitch, Cedric Chauve, William Hsiao')
@@ -759,7 +766,7 @@ def main():
                         datefmt='%I:%M:%S %p')
 
     if param.subcommand == 'run':
-        run_all(param)
+        run_all(param, MAJOR_VERSION, MINOR_VERSION)
     elif param.subcommand == 'correlation':
         correlation(param)
     elif param.subcommand == 'consensus':
