@@ -4,7 +4,7 @@
 # Google yaml for the specification.
 # Un-comment example files to use
 # Directory to save temporary files.
-temp: tests/integration_tests/temp_dir
+temp: #tests/integration_tests/temp_dir
 # Number of threads on your computer
 threads: 1
 # Select what tools to run: 1 to run and 0 to not run.
@@ -72,7 +72,6 @@ genotyping:
         ## coverage, novel, and multiple alleles. 
         #- output_special
   kwip:
-    kwip_path: #/home/usr/bin/kwip
     khmer_options:
       N: 1
       x: 1e9

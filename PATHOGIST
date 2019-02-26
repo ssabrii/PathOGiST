@@ -121,6 +121,26 @@ def run_snippy(snippy_args,forward_reads_paths,reverse_reads_paths,threads,temp_
         logger.info(" Finished running Snippy on sample %s." % accession)
     logger.info(" Finished running Snippy.")
     return snippy_calls_paths
+    
+def install_mentalist():
+    install_path = os.environ['PATH'].split(os.pathsep)[0]
+    julia_dir=install_path+"/julia_mentalist"
+    if os.path.isfile(julia_dir + '/julia-1.1.0/bin/julia') == False:
+        subprocess.call(['wget', '-x', '-P', julia_dir, 
+            'https://julialang-s3.julialang.org/bin/linux/x64/1.1/julia-1.1.0-linux-x86_64.tar.gz'])
+        subprocess.call(['tar', '-C', julia_dir, '-xzf', 
+            julia_dir+'/julialang-s3.julialang.org/bin/linux/x64/1.1/julia-1.1.0-linux-x86_64.tar.gz'])
+        for pkg in ["Distributed", "ArgParse", "BioSequences", "JSON", "DataStructures", "JLD", "GZip",
+                "Blosc", "FileIO", "TextWrap", "LightXML"]:
+            julia_command = julia_dir + '/julia-1.1.0/bin/julia'+' -e \'import Pkg; Pkg.add("%s")\'' % (pkg)
+            subprocess.call(julia_command, shell=True)
+    if os.path.isfile(julia_dir + '/MentaLiST-master/src/MentaLiST.jl') == False:
+        subprocess.call(['wget', '-x', '-P', julia_dir, 
+            'https://github.com/WGS-TB/MentaLiST/archive/master.zip'])
+        subprocess.call(['unzip', 
+            julia_dir+'/github.com/WGS-TB/MentaLiST/archive/master.zip', '-d', julia_dir])
+    
+    
 
 def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir):
     # Get the accessions
@@ -128,16 +148,19 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
     logger.info("Running MentaLiST...")
     if mentalist_args['db_loc']['local_file'] == 1:
         return run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, mentalist_args['local_file']['database'])
-
+    install_path = os.environ['PATH'].split(os.pathsep)[0]
+    julia_dir=install_path+"/julia_mentalist"
     # Run any one of the database building mentalist subcommands
     db_path = "%s/mlst.db" % temp_dir
     for subcmd in ['build_db','download_pubmlst','download_cgmlst','download_enterobase']:
         if mentalist_args['db_loc'][subcmd] == 1:
             subcmd_options = mentalist_args[subcmd]['options']
-            mentalist_command = ['mentalist',subcmd,
+            mentalist_command = [julia_dir + '/julia-1.1.0/bin/julia',
+                                 julia_dir + '/MentaLiST-master/src/MentaLiST.jl',
+                                 subcmd,
                                  '--db','%s' % db_path,
                                  '--threads','%s' % threads,
-                                 '--output', temp_dir]
+                                 '--output', temp_dir + '/mlst_fasta/']
             # Add user specified command line arguments
             try:
                 for arg in subcmd_options:
@@ -162,13 +185,17 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
     # Run the mentalist call subcommand
     return run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, db_path)
     
-	
+    
 def run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths, temp_dir, accessions, threads, db_path):
     mentalist_calls_paths = [] # the paths to the MLST call files
+    install_path = os.environ['PATH'].split(os.pathsep)[0]
+    julia_dir=install_path+"/julia_mentalist"
     for accession in accessions:
         call_path = '%s/%s_mlst.call' % (temp_dir,accession)
         mentalist_calls_paths.append(call_path)
-        call_command = ['mentalist','call']
+        call_command = [julia_dir + '/julia-1.1.0/bin/julia',
+                        julia_dir + '/MentaLiST-master/src/MentaLiST.jl',
+                        'call']
         call_command.extend(['--db', db_path])
         call_command.extend(['-o', call_path])
 
@@ -189,6 +216,7 @@ def run_mentalist_call(mentalist_args, forward_reads_paths, reverse_reads_paths,
         except:
             pass
         logger.info(" Calling MLSTs on samples %s using MentaLiST..." % accession)
+        #print(call_command)
         subprocess.call(call_command) 
         logger.info(" Finished calling MLSTs on sample %s." % accession)
     logger.info(" Finished running MentaLiST.")
@@ -226,7 +254,7 @@ def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir)
     logger.info(" Finished building k-mer countgraphs for all samples.")
 
     kwip_path = kwip_args['kwip_path']
-    kwip_command = [kwip_path]
+    kwip_command = ['kwip']
     kwip_options = kwip_args['kwip_options']
 
     # Add the user specified options for kwip
@@ -267,7 +295,6 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
             prince_command.extend(['--%s' % arg, prince_options[arg]])
     except:
         pass
-    logger.info(prince_command)
     logger.info(" Finding CNVs using PRINCE...")
     subprocess.call(prince_command)
     logger.info(" Finished running PRINCE.")
@@ -373,6 +400,7 @@ def run_genotyping_tools(genotyping_args, run_args, threads, temp_dir):
 
     if 'mentalist' in genotyping_args and run_args['mentalist'] == 1:
         mentalist_args = genotyping_args['mentalist']
+        install_mentalist()
         denovo_calls_paths['MLST'] = run_mentalist(mentalist_args,
                                                    forward_reads_paths,
                                                    reverse_reads_paths,
