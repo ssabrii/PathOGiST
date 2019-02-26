@@ -253,7 +253,7 @@ def run_kwip(kwip_args,forward_reads_paths,reverse_reads_paths,threads,temp_dir)
     logger.info(" Finished building k-mer countgraphs for all samples.")
 
     kwip_path = kwip_args['kwip_path']
-    kwip_command = [kwip_path]
+    kwip_command = ['kwip']
     kwip_options = kwip_args['kwip_options']
 
     # Add the user specified options for kwip
@@ -294,7 +294,6 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
             prince_command.extend(['--%s' % arg, prince_options[arg]])
     except:
         pass
-    logger.info(prince_command)
     logger.info(" Finding CNVs using PRINCE...")
     subprocess.call(prince_command)
     logger.info(" Finished running PRINCE.")
