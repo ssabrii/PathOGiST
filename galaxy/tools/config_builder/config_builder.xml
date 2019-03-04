@@ -9,20 +9,83 @@
 
         $__tool_directory__/config_builder
 
-        #if task.snippy.snippy_checkbox
+        #if snippy.snippy_checkbox
             --snippy
+            --reference $snippy.reference
+            #if snippy.snippy_adv.snippy_adv_checkbox
+                --mapqual $snippy.mapqual
+                --basequal $snippy.basequal
+                --mincov $snippy.mincov
+                --minfrac $snippy.minfrac
+            #endif
+            $snippy.snp_fine
+            --snp_thresh $snippy.snp_threshold
         #endif
-        #if task.mlst.mlst_checkbox
+
+        #if mentalist.mentalist_checkbox
             --mentalist
+            #if mentalist.db_loc.db_selector == "local_file"
+                --local_file
+                --local_db $mentalist.mlst_database
+            #endif
+            #if mentalist.db_loc.db_selector == "build_db"
+                --build_db
+                --kmer $mentalist.k
+                --fasta_files $mentalist.fasta_files
+                --profile $mentalist.profile
+            #endif
+            #if mentalist.db_loc.db_selector == "download_pubmlst"
+                --download_pubmlst
+                --kmer $mentalist.k
+                --scheme $mentalist.scheme
+            #endif
+            #if mentalist.db_loc.db_selector == "download_cgmlst"
+                --download_cgmlst
+                --kmer $mentalist.k
+                --scheme $mentalist.scheme
+            #endif
+            #if mentalist.db_loc.db_selector == "download_enterobase"
+                --download_enterobase $mentalist.k
+                --entero_scheme $mentalist.scheme
+                --entero_type $mentalist.type
+            #endif
+            #if mentalist.mentalist_adv.mentalist_adv_checkbox
+                --mutation_threshold $mentalist.mutation_thresh
+                --kt $mentalist.kt
+            #endif
+            $mentalist.mlst_fine
+            --mlst_thresh $mentalist.mlst_threshold
         #endif
-        #if task.prince.prince_checkbox
+
+        #if prince.prince_checkbox
             --prince
+            $prince.cnv_fine
+            --cnv_thresh $prince.cnv_threshold
         #endif
-        #if task.kwip.kwip_checkbox
+
+        #if kwip.kwip_checkbox
             --kwip
+            #if kwip.kwip_adv.kwip_adv_checkbox
+                --N $kwip.N
+                --x $kwip.x
+                --ksize $kwip.ksize
+                --unique_kmers $kwip.unique_kmers
+            #endif
+            $kwip.kwip_fine
+            --kwip_thresh $kwip.kwip_threshold
         #endif
-        #if task.spotyping.spotyping_checkbox
+
+        #if spotyping.spotyping_checkbox
             --spotyping
+            $spotyping.spoligo_fine
+            --spoligo_thresh $spotyping.spoligo_threshold
+        #endif
+
+        #if adv_clustering.adv_clustering_checkbox
+            $adv_clustering.all_constraints
+            --method $adv_clustering.method
+            $adv_clustering.presolve
+            $adv_clustering.visualize
         #endif
     ]]></command>
 

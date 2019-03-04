@@ -63,7 +63,7 @@ clustering.add_argument('--kwip_thresh', metavar="INT", help="Threshold value fo
 clustering.add_argument('--spoligo_thresh', metavar="INT", help="Threshold value for Spoligotyping")
 clustering.add_argument('--cnv_thresh', metavar="INT", help="Threshold value for CNV")
 clustering.add_argument('--less_constraints', action='store_true', help="Use less constraints when clustering")
-clustering.add_argument('--ILP', action='store_true', help="Use ILP as clustering algorithm")
+clustering.add_argument('--method', metavar="STRING", help="Use `C4` or `ILP` as clustering method")
 clustering.add_argument('--no_presolve', action='store_true', help="Do not perform presolving")
 clustering.add_argument('--visualize', action='store_true', help="Visualize clusters")
 
@@ -173,8 +173,8 @@ for line in list_doc:
 
         if args.less_constraints:
             list_doc[line]['all_constraints'] = False
-        if args.ILP:
-            list_doc[line]['method'] = 'ILP'
+        if args.method:
+            list_doc[line]['method'] = args.method
         if args.no_presolve:
             list_doc[line]['presolve'] = False
         if args.visualize:
