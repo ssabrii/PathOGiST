@@ -17,51 +17,51 @@
                 --basequal $snippy.basequal
                 --mincov $snippy.mincov
                 --minfrac $snippy.minfrac
-            #endif
+            #end if
             $snippy.snp_fine
             --snp_thresh $snippy.snp_threshold
-        #endif
+        #end if
 
         #if mentalist.mentalist_checkbox
             --mentalist
             #if mentalist.db_loc.db_selector == "local_file"
                 --local_file
                 --local_db $mentalist.mlst_database
-            #endif
+            #end if
             #if mentalist.db_loc.db_selector == "build_db"
                 --build_db
                 --kmer $mentalist.k
                 --fasta_files $mentalist.fasta_files
                 --profile $mentalist.profile
-            #endif
+            #end if
             #if mentalist.db_loc.db_selector == "download_pubmlst"
                 --download_pubmlst
                 --kmer $mentalist.k
                 --scheme $mentalist.scheme
-            #endif
+            #end if
             #if mentalist.db_loc.db_selector == "download_cgmlst"
                 --download_cgmlst
                 --kmer $mentalist.k
                 --scheme $mentalist.scheme
-            #endif
+            #end if
             #if mentalist.db_loc.db_selector == "download_enterobase"
                 --download_enterobase $mentalist.k
                 --entero_scheme $mentalist.scheme
                 --entero_type $mentalist.type
-            #endif
+            #end if
             #if mentalist.mentalist_adv.mentalist_adv_checkbox
                 --mutation_threshold $mentalist.mutation_thresh
                 --kt $mentalist.kt
-            #endif
+            #end if
             $mentalist.mlst_fine
             --mlst_thresh $mentalist.mlst_threshold
-        #endif
+        #end if
 
         #if prince.prince_checkbox
             --prince
             $prince.cnv_fine
             --cnv_thresh $prince.cnv_threshold
-        #endif
+        #end if
 
         #if kwip.kwip_checkbox
             --kwip
@@ -70,25 +70,25 @@
                 --x $kwip.x
                 --ksize $kwip.ksize
                 --unique_kmers $kwip.unique_kmers
-            #endif
+            #end if
             $kwip.kwip_fine
             --kwip_thresh $kwip.kwip_threshold
-        #endif
+        #end if
 
         #if spotyping.spotyping_checkbox
             --spotyping
             $spotyping.spoligo_fine
             --spoligo_thresh $spotyping.spoligo_threshold
-        #endif
+        #end if
 
         #if adv_clustering.adv_clustering_checkbox
             $adv_clustering.all_constraints
             --method $adv_clustering.method
             $adv_clustering.presolve
             $adv_clustering.visualize
-        #endif
+        #end if
 
-        blank_onfig.yaml
+        blank_config.yaml
         $forward
         $reverse
         config.yaml
