@@ -5,7 +5,7 @@
     </requirements>
 
     <command><![CDATA[
-        PATHOGIST all config.yaml --new_config
+        PATHOGIST all blank_config.yaml --new_config
 
         $__tool_directory__/config_builder
 
@@ -87,19 +87,18 @@
             $adv_clustering.presolve
             $adv_clustering.visualize
         #endif
+
+        blank_onfig.yaml
+        $forward
+        $reverse
+        config.yaml
     ]]></command>
 
 
     <inputs>
-        <!--<conditional name="task">-->
-            <!--<param name="task_selector" type="select" label="Create Blank Config or Populate Config File">-->
-                <!--<option value="create">Create Blank Config File</option>-->
-                <!--<option value="populate">Populate Config File</option>-->
-            <!--</param>-->
-            <!--<when value="create">-->
+        <param name="forward" type="data" format="txt,tabular" label="List of forward reads"/>
+        <param name="reverse" type="data" format="txt,tabular" label="List of reverse reads"/>
 
-            <!--</when>-->
-            <!--<when value="populate">-->
         <conditional name="snippy">
             <param name="snippy_checkbox" type="boolean" label="Run Snippy"/>
             <when value="true">
@@ -187,7 +186,7 @@
             <param name="kwip_checkbox" type="boolean" label="Run kWIP"/>
             <when value="true">
                 <conditional name="kwip_adv">
-                    <param name="kwip_adv_checkbox" type="boolean" label="Advance kWIP Parameters"/>
+                    <param name="kwip_adv_checkbox" type="boolean" label="Advanced kWIP Parameters"/>
                     <when value="true">
                         <param name="N" type="integer" value="1" min="1" label="Number of tables"/>
                         <param name="x" type="float" value="1e9" min="1" label="Maximum table size"/>
@@ -225,8 +224,6 @@
                        label="Visualize clusters"/>
             </when>
         </conditional>
-            <!--</when>-->
-        <!--</conditional>-->
     </inputs>
 
     <outputs>
