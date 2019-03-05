@@ -9,79 +9,79 @@
 
         $__tool_directory__/config_builder
 
-        #if snippy.snippy_checkbox
+        #if $snippy.snippy_checkbox
             --snippy
             --reference $snippy.reference
-            #if snippy.snippy_adv.snippy_adv_checkbox
-                --mapqual $snippy.mapqual
-                --basequal $snippy.basequal
-                --mincov $snippy.mincov
-                --minfrac $snippy.minfrac
+            #if $snippy.snippy_adv.snippy_adv_checkbox
+                --mapqual $snippy.snippy_adv.mapqual
+                --basequal $snippy.snippy_adv.basequal
+                --mincov $snippy.snippy_adv.mincov
+                --minfrac $snippy.snippy_adv.minfrac
             #end if
             $snippy.snp_fine
             --snp_thresh $snippy.snp_threshold
         #end if
 
-        #if mentalist.mentalist_checkbox
+        #if $mentalist.mentalist_checkbox
             --mentalist
-            #if mentalist.db_loc.db_selector == "local_file"
+            #if $mentalist.db_loc.db_selector == "local_file"
                 --local_file
-                --local_db $mentalist.mlst_database
+                --local_db $mentalist.db_loc.mlst_database
             #end if
-            #if mentalist.db_loc.db_selector == "build_db"
+            #if $mentalist.db_loc.db_selector == "build_db"
                 --build_db
-                --kmer $mentalist.k
-                --fasta_files $mentalist.fasta_files
-                --profile $mentalist.profile
+                --kmer $mentalist.db_loc.k
+                --fasta_files $mentalist.db_loc.fasta_files
+                --profile $mentalist.db_loc.profile
             #end if
-            #if mentalist.db_loc.db_selector == "download_pubmlst"
+            #if $mentalist.db_loc.db_selector == "download_pubmlst"
                 --download_pubmlst
-                --kmer $mentalist.k
-                --scheme $mentalist.scheme
+                --kmer $mentalist.db_loc.k
+                --scheme $mentalist.db_loc.scheme
             #end if
-            #if mentalist.db_loc.db_selector == "download_cgmlst"
+            #if $mentalist.db_loc.db_selector == "download_cgmlst"
                 --download_cgmlst
-                --kmer $mentalist.k
-                --scheme $mentalist.scheme
+                --kmer $mentalist.db_loc.k
+                --scheme $mentalist.db_loc.scheme
             #end if
-            #if mentalist.db_loc.db_selector == "download_enterobase"
-                --download_enterobase $mentalist.k
-                --entero_scheme $mentalist.scheme
-                --entero_type $mentalist.type
+            #if $mentalist.db_loc.db_selector == "download_enterobase"
+                --download_enterobase $mentalist.db_loc.k
+                --entero_scheme $mentalist.db_loc.scheme
+                --entero_type $mentalist.db_loc.type
             #end if
-            #if mentalist.mentalist_adv.mentalist_adv_checkbox
-                --mutation_threshold $mentalist.mutation_thresh
-                --kt $mentalist.kt
+            #if $mentalist.mentalist_adv.mentalist_adv_checkbox
+                --mutation_threshold $mentalist.mentalist_adv.mutation_thresh
+                --kt $mentalist.mentalist_adv.kt
             #end if
             $mentalist.mlst_fine
             --mlst_thresh $mentalist.mlst_threshold
         #end if
 
-        #if prince.prince_checkbox
+        #if $prince.prince_checkbox
             --prince
             $prince.cnv_fine
             --cnv_thresh $prince.cnv_threshold
         #end if
 
-        #if kwip.kwip_checkbox
+        #if $kwip.kwip_checkbox
             --kwip
-            #if kwip.kwip_adv.kwip_adv_checkbox
-                --N $kwip.N
-                --x $kwip.x
-                --ksize $kwip.ksize
-                --unique_kmers $kwip.unique_kmers
+            #if $kwip.kwip_adv.kwip_adv_checkbox
+                --N $kwip.kwip_adv.N
+                --x $kwip.kwip_adv.x
+                --ksize $kwip.kwip_adv.ksize
+                --unique_kmers $kwip.kwip_adv.unique_kmers
             #end if
             $kwip.kwip_fine
             --kwip_thresh $kwip.kwip_threshold
         #end if
 
-        #if spotyping.spotyping_checkbox
+        #if $spotyping.spotyping_checkbox
             --spotyping
             $spotyping.spoligo_fine
             --spoligo_thresh $spotyping.spoligo_threshold
         #end if
 
-        #if adv_clustering.adv_clustering_checkbox
+        #if $adv_clustering.adv_clustering_checkbox
             $adv_clustering.all_constraints
             --method $adv_clustering.method
             $adv_clustering.presolve
