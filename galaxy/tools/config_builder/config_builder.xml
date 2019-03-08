@@ -1,7 +1,7 @@
 <tool id="config_builder" name="PathOGiST - Config Builder" version="1.0.0">
     <description>: Creates and populates the config file to run PathOGiST</description>
     <requirements>
-        <requirement type="package" version="0.2.3">pathogist</requirement>
+        <requirement type="package" version="0.3">pathogist</requirement>
     </requirements>
 
     <command><![CDATA[
