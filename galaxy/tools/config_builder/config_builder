@@ -3,11 +3,15 @@
 import sys
 import yaml
 import argparse as ap
+import urllib.request as urllib
+
+# Version of PathOGiST
+MAJOR_VERSION = 0
+MINOR_VERSION = 3
 
 parser = ap.ArgumentParser(prog='config_builder', conflict_handler='resolve',
                            description="Builds the config file for PathOGiST")
 
-parser.add_argument('yaml', help="Blank config file")
 parser.add_argument('forward', help="File to list of forward reads")
 parser.add_argument('reverse', help="File to list of reverse reads")
 parser.add_argument('output', help="Output prefix for final consensus clustering and visualization")
@@ -73,7 +77,10 @@ if len(sys.argv) == 1:
 
 args = parser.parse_args()
 
-with open(args.yaml) as f:
+urllib.urlretrieve("https://github.com/WGS-TB/PathOGiST/releases/download/v{0}.{1}/blank_config.yaml"
+                   .format(MAJOR_VERSION, MINOR_VERSION), 'blank_config.yaml')
+
+with open('blank_config.yaml') as f:
     list_doc = yaml.load(f)
 
 for line in list_doc:

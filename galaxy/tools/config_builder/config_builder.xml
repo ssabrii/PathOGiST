@@ -5,8 +5,6 @@
     </requirements>
 
     <command><![CDATA[
-        PATHOGIST all blank_config.yaml --new_config
-
         $__tool_directory__/config_builder
 
         #if $snippy.snippy_checkbox
@@ -88,7 +86,6 @@
             $adv_clustering.visualize
         #end if
 
-        blank_config.yaml
         $forward
         $reverse
         config.yaml
@@ -116,7 +113,8 @@
                         variant evidence"/>
                     </when>
                 </conditional>
-                <param name="snp_fine" type="boolean" label="Consider SNP as a fine datatype"/>
+                <param name="snp_fine" type="boolean" checked="true" falsevalue="" truevalue="--fine_snp"
+                       label="Consider SNP as a fine datatype"/>
                 <param name="snp_threshold" type="integer" value="2500" min="0"
                        label="Correlation clustering threshold for MLST"/>
             </when>
@@ -167,7 +165,8 @@
                         kmer is seen to be considered present in the sample"/>
                     </when>
                 </conditional>
-                <param name="mlst_fine" type="boolean" label="Consider MLST as a fine datatype"/>
+                <param name="mlst_fine" type="boolean" checked="false" falsevalue="" truevalue="--fine_mlst"
+                       label="Consider MLST as a fine datatype"/>
                 <param name="mlst_threshold" type="integer" value="300" min="0"
                        label="Correlation clustering threshold for MLST"/>
             </when>
@@ -176,7 +175,8 @@
         <conditional name="prince">
             <param name="prince_checkbox" type="boolean" label="Run PRINCE"/>
             <when value="true">
-                <param name="cnv_fine" type="boolean" label="Consider CNV as a fine datatype"/>
+                <param name="cnv_fine" type="boolean" checked="false" falsevalue="" truevalue="--fine_cnv"
+                       label="Consider CNV as a fine datatype"/>
                 <param name="cnv_threshold" type="integer" value="100" min="0"
                        label="Correlation clustering threshold for CNV"/>
             </when>
@@ -195,7 +195,8 @@
                         of unique kmers in the input set"/>
                     </when>
                 </conditional>
-                <param name="kwip_fine" type="boolean" label="Consider kWIP as a fine datatype"/>
+                <param name="kwip_fine" type="boolean" checked="false" falsevalue="" truevalue="--fine_kwip"
+                       label="Consider kWIP as a fine datatype"/>
                 <param name="kwip_threshold" type="float" value="0.4" min="0"
                        label="Correlation clustering threshold for kWIP"/>
             </when>
@@ -204,7 +205,8 @@
         <conditional name="spotyping">
             <param name="spotyping_checkbox" type="boolean" label="Run SpoTyping"/>
             <when value="true">
-                <param name="spoligo_fine" type="boolean" label="Consider spoligotype as a fine datatype"/>
+                <param name="spoligo_fine" type="boolean" checked="false" falsevalue="" truevalue="--fine_spoligo"
+                       label="Consider spoligotype as a fine datatype"/>
                 <param name="spoligo_threshold" type="integer" value="8" min="0"
                        label="Correlation clustering threshold for Spoligotyping"/>
             </when>
