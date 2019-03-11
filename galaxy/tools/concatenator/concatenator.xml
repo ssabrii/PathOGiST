@@ -25,6 +25,10 @@
             #if $input_type.spoligo.spoligo_checkbox
                 --spoligo $input_type.spoligo.spoligo_path
             #end if
+         #elif $input_type.input_type_selector == "reads"
+            reads
+            $input_type.fastq.forward
+            $input_type.fastq.reverse
          #end if
     ]]></command>
 
@@ -34,6 +38,7 @@
             <param name="input_type_selector" type="select" label="Concatenation of variant calls, or clustering files">
                 <option value="variant">Variant Call Files</option>
                 <option value="clustering">Clustering/Distance Matrix Files</option>
+                <option value="reads">Raw reads</option>
             </param>
             <when value="variant">
                 <param name="paths" type="data" label="Collection of calls" help="" optional="False" multiple="True"/>
@@ -68,11 +73,24 @@
                     </when>
                 </conditional>
             </when>
+            <when value="reads">
+                <param name="fastq" type="data_collection" collection_type="paired"
+                       format="fastqsanger,fastq,fastq.gz,fastqsanger.gz" label="Select paired collection"/>
+            </when>
         </conditional>
     </inputs>
 
     <outputs>
-        <data name="output" label="Paths of ${on_string}" format="txt" from_work_dir="paths.txt"/>
+        <data name="output" label="Paths of ${on_string}" format="txt" from_work_dir="paths.txt">
+            <filter>input_type[input_type_selector] == 'variant'
+                or input_type[input_type_selector] == 'clustering'</filter>
+        </data>
+        <data name="forward" label="Paths of ${on_string} (forward reads)" format="txt" from_work_dir="forward.txt">
+            <filter>input_type[input_type_selector] == 'reads'</filter>
+        </data>
+        <data name="reverse" label="Paths of ${on_string} (reverse reads)" format="txt" from_work_dir="reverse.txt">
+            <filter>input_type[input_type_selector] == 'reads'</filter>
+        </data>
     </outputs>
 
     <help>
