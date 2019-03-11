@@ -7,6 +7,7 @@ chmod +x miniconda.sh
 export PATH=/home/travis/miniconda2/bin:$PATH
 ls /home/travis/
 conda update --yes conda
+conda install conda-build
 conda build ../../conda/meta.yaml --yes
 #conda install --file ../../conda/environment.yaml --yes 
 conda config --add channels defaults
