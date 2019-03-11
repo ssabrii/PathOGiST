@@ -7,12 +7,11 @@ chmod +x miniconda.sh
 export PATH=/home/travis/miniconda2/bin:$PATH
 ls /home/travis/
 conda update --yes conda
-conda create --yes -n test 
+conda install --file ../../conda/environment.yaml --yes 
 conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
-source activate test
-conda install snippy
+source activate pathogist
 snippy -h
 
 #./PATHOGIST run tests/integration_tests/test_data/pathogist-run_all-test.yaml 
