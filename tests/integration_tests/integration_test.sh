@@ -1,18 +1,19 @@
 #!/bin/bash
 
 set -e
-wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+#wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+wget https://repo.anaconda.com/archive/Anaconda3-2018.12-Linux-x86_64.sh -O anaconda.sh
 chmod +x miniconda.sh
-./miniconda.sh -b
-export PATH=/home/travis/miniconda2/bin:$PATH
+./anaconda.sh -b
+#export PATH=/home/travis/miniconda2/bin:$PATH
 ls /home/travis/
-conda update --yes conda
-conda install conda-build --yes
-conda build ../../conda/meta.yaml --yes
+#conda update --yes conda
+#conda install conda-build --yes
+#conda build ../../conda/meta.yaml --yes
 #conda install --file ../../conda/environment.yaml --yes 
-conda config --add channels defaults
-conda config --add channels bioconda
-conda config --add channels conda-forge
+#conda config --add channels defaults
+#conda config --add channels bioconda
+#conda config --add channels conda-forge
 #source activate pathogist
 #snippy -h
 
