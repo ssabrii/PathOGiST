@@ -3,7 +3,7 @@
 set -e
 #wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
 wget https://repo.anaconda.com/archive/Anaconda3-2018.12-Linux-x86_64.sh -O anaconda.sh
-chmod +x miniconda.sh
+chmod +x anaconda.sh
 ./anaconda.sh -b
 #export PATH=/home/travis/miniconda2/bin:$PATH
 ls /home/travis/
