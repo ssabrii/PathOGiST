@@ -9,7 +9,7 @@ export PATH=/home/travis/anaconda3/bin:$PATH
 ls /home/travis/
 conda update --yes conda
 conda install conda-build --yes
-conda build ../../conda/meta.yaml --yes
+conda build ../../conda/meta.yaml 
 #conda install --file ../../conda/environment.yaml --yes 
 #conda config --add channels defaults
 #conda config --add channels bioconda
