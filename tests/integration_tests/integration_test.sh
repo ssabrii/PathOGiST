@@ -5,7 +5,7 @@ set -e
 wget https://repo.anaconda.com/archive/Anaconda3-2018.12-Linux-x86_64.sh -O anaconda.sh
 chmod +x anaconda.sh
 ./anaconda.sh -b
-export PATH=/home/travis/miniconda3/bin:$PATH
+export PATH=/home/travis/anaconda3/bin:$PATH
 ls /home/travis/
 conda update --yes conda
 conda install conda-build --yes
