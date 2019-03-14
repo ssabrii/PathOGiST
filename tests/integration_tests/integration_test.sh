@@ -13,9 +13,9 @@ conda install conda-build --yes
 conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
-conda create --name pathogist 
-source activate pathogist
-conda install pathogist
+conda create --name pathogist --yes 
+source activate pathogist 
+conda install pathogist --yes
 snippy -h
 pathogist -h
 #./PATHOGIST run tests/integration_tests/test_data/pathogist-run_all-test.yaml 
