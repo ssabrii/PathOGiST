@@ -13,15 +13,16 @@ conda install conda-build --yes
 conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
-conda build conda/meta.yaml 
-#source activate pathogist
-#snippy -h
-
+conda create --name pathogist 
+source activate pathogist
+conda install pathogist
+snippy -h
+pathogist -h
 #./PATHOGIST run tests/integration_tests/test_data/pathogist-run_all-test.yaml 
 
 #python -m unittest tests/integration_tests/test_integration.py
 # Run Genotyping Software
-./PATHOGIST run tests/integration_tests/test2_data/pathogist-run_all-test2.yaml 
+#./PATHOGIST run tests/integration_tests/test2_data/pathogist-run_all-test2.yaml 
 
 #python -m unittest tests/integration_tests/test2_integration.py
 #./PATHOGIST run tests/integration_tests/test3_data/pathogist-run_all-test3.yaml 
