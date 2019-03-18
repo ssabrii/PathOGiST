@@ -339,11 +339,6 @@ def assert_config(config):
                             "minfrac values under snippy section must be integer or float and be between 0 and 1"
         # spotyping assertions
         if key == "spotyping" and config['run'][key] == 1:
-            if config['genotyping'][key]['path'] == None:
-                assert config['genotyping'][key]['path'] != None,\
-                    "SpoTyping python file location values for path must exist if you want to run spotyping"
-            assert os.path.isfile(config['genotyping'][key]['path']),\
-                "SpoTyping python file location values for path must exist."
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
                     assert flag in ['seq','noQuery','filter','sorted'],\

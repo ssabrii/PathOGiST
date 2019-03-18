@@ -131,14 +131,17 @@ def install_mentalist():
         subprocess.call(['tar', '-C', julia_dir, '-xzf', 
             julia_dir+'/julialang-s3.julialang.org/bin/linux/x64/1.1/julia-1.1.0-linux-x86_64.tar.gz'])
         for pkg in ["Distributed", "ArgParse", "BioSequences", "JSON", "DataStructures", "JLD", "GZip",
-                "Blosc", "FileIO", "TextWrap", "LightXML"]:
+                "Blosc", "FileIO", "TextWrap", "LightXML", "JuMP", "Gurobi"]:
             julia_command = julia_dir + '/julia-1.1.0/bin/julia'+' -e \'import Pkg; Pkg.add("%s")\'' % (pkg)
             subprocess.call(julia_command, shell=True)
-    if os.path.isfile(julia_dir + '/MentaLiST-master/src/MentaLiST.jl') == False:
+    #pkg = '[ "Distributed", "ArgParse", "BioSequences", "JSON", "DataStructures", "JLD", "GZip", "Blosc", "FileIO", "TextWrap", "LightXML"]'
+    #julia_command = julia_dir + '/julia-1.1.0/bin/julia'+' -e \'import Pkg; Pkg.add("%s")\'' % (pkg)
+    #subprocess.call(julia_command, shell=True)
+    if os.path.isfile(julia_dir + '/MentaLiST-65451e75e5cfd168c23989a0ef50fcf545cc8e57/src/MentaLiST.jl') == False:
         subprocess.call(['wget', '-x', '-P', julia_dir, 
-            'https://github.com/WGS-TB/MentaLiST/archive/master.zip'])
+            'https://github.com/WGS-TB/MentaLiST/archive/65451e7.zip'])
         subprocess.call(['unzip', 
-            julia_dir+'/github.com/WGS-TB/MentaLiST/archive/master.zip', '-d', julia_dir])
+            julia_dir+'/github.com/WGS-TB/MentaLiST/archive/65451e7.zip', '-d', julia_dir])
     
     
 
@@ -156,7 +159,7 @@ def run_mentalist(mentalist_args,forward_reads_paths,reverse_reads_paths,threads
         if mentalist_args['db_loc'][subcmd] == 1:
             subcmd_options = mentalist_args[subcmd]['options']
             mentalist_command = [julia_dir + '/julia-1.1.0/bin/julia',
-                                 julia_dir + '/MentaLiST-master/src/MentaLiST.jl',
+                                 julia_dir + '/MentaLiST-65451e75e5cfd168c23989a0ef50fcf545cc8e57/src/MentaLiST.jl',
                                  subcmd,
                                  '--db','%s' % db_path,
                                  '--threads','%s' % threads,
@@ -307,7 +310,8 @@ def run_prince(prince_args,combined_reads_list_path,threads,temp_dir):
 def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
     accessions = set(forward_reads.keys()).union(reverse_reads.keys())
     spotyping_options = spotyping_args['options']
-    spotyping_path = spotyping_args['path']
+    #spotyping_path = spotyping_args['path']
+    install_path = os.environ['PATH'].split(os.pathsep)[0]
 
     # Add the user specified flags for the SpoTyping command
     spotyping_flags = spotyping_args['flags']
@@ -319,7 +323,7 @@ def run_spotyping(spotyping_args,forward_reads,reverse_reads,temp_dir):
         spoligo_calls_paths.append(calls_path)
 
         # Set up the spotyping command
-        spotyping_command = ['python2', spotyping_path, 
+        spotyping_command = ['python', install_path +'/SpoTyping.py', 
                              '--outdir', temp_dir, 
                              '--output', '%s_spotyping.call' % accession,
                             ] 
@@ -709,7 +713,7 @@ def visualize(param):
 
 def main():
     MAJOR_VERSION = 0
-    MINOR_VERSION = 3
+    MINOR_VERSION = 4
 
     parser = argparse.ArgumentParser(description=('PathOGiST Version %d.%d\n' +
                     'Copyright (C) 2018 Leonid Chindelevitch, Cedric Chauve, William Hsiao')
