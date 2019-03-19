@@ -2,6 +2,22 @@
 
 set -e
 
+#wget https://repo.anaconda.com/archive/Anaconda3-2018.12-Linux-x86_64.sh -O anaconda.sh
+#chmod +x anaconda.sh
+#./anaconda.sh -b
+#export PATH=/home/travis/anaconda3/bin:$PATH
+#ls /home/travis/
+#conda update --yes conda
+#conda install conda-build --yes
+#conda install --file ../../conda/environment.yaml --yes 
+#conda config --add channels defaults
+#conda config --add channels bioconda
+#conda config --add channels conda-forge
+#conda create --name pathogist --yes 
+#source activate pathogist 
+#conda install pathogist --yes
+
+
 ./PATHOGIST run tests/integration_tests/test_data/pathogist-run_all-test.yaml 
 
 python -m unittest tests/integration_tests/test_integration.py

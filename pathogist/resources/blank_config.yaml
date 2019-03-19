@@ -9,11 +9,11 @@ temp: #tests/integration_tests/temp_dir
 threads: 1
 # Select what tools to run: 1 to run and 0 to not run.
 run:
-  snippy: 0
-  kwip: 0
-  prince: 0
-  spotyping: 0
-  mentalist: 0
+  snippy: 1
+  kwip: 1
+  prince: 1
+  spotyping: 1
+  mentalist: 1
 # Command line options for tools to genotype your raw reads
 genotyping:
   input_reads:
@@ -22,10 +22,10 @@ genotyping:
   mentalist:
     # Choose 1 of the following option for mentalist to obtain a mlst database by selecting 1 and 0 for the others
     db_loc:
-      local_file: 1
+      local_file: 0
       build_db: 0
       download_pubmlst: 0
-      download_cgmlst: 0
+      download_cgmlst: 1
       download_enterobase: 0
     local_file:
       database: #/home/usr/mlst.db
@@ -46,9 +46,9 @@ genotyping:
     download_cgmlst:
       options:
         ## Kmer size
-        k:
+        k: 31
         ## Species name or scheme ID
-        scheme:
+        scheme: 741110
     download_enterobase:
       options:
         ## Kmer size
@@ -108,8 +108,6 @@ genotyping:
       ## Keep unmapped reads in BAM and write FASTQ.
       #- unmapped
   spotyping:
-    # Path to SpoTyping.py file
-    path: #/home/usr/Spotyping.py
     options:
       #swift: on
       #min: 5
@@ -129,7 +127,7 @@ clustering:
   # Output prefix for final consensus clustering and visualization
   output_prefix: tests/integration_tests/test_data/yersinia_final_clustering
   # Raw genotyping data from which to create distance matrices.
-  # Accepted values are paths to text files containing paths to genotyping files.
+  # Accepted values are paths to text files containing  paths to genotyping files.
   # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE
   genotyping: 
     MLST: #/home/usr/mentalist_calls.txt

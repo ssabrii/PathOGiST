@@ -2,23 +2,33 @@
 # PathOGiST configuration file.
 # This configuration file is in YAML file format, release 1.2 (Third Edition).
 # Google yaml for the specification.
-
+# Un-comment example files to use
 # Directory to save temporary files.
 temp: tests/integration_tests/temp_dir
 # Number of threads on your computer
-threads: 1
-# Command line options for tools to genotype your raw reads
+threads: 8
+# Select what tools to run: 1 to run and 0 to not run.
 run:
   snippy: 1
-  kwip: 0
-  prince: 0
-  spotyping: 0
-  mentalist: 0
+  kwip: 1
+  prince: 1
+  spotyping: 1
+  mentalist: 1
+# Command line options for tools to genotype your raw reads
 genotyping:
   input_reads:
     forward_reads: tests/integration_tests/test2_data/tb_2_forward.txt
     reverse_reads: tests/integration_tests/test2_data/tb_2_reverse.txt
   mentalist:
+    # Choose 1 of the following option for mentalist to obtain a mlst database by selecting 1 and 0 for the others
+    db_loc:
+      local_file: 0
+      build_db: 0
+      download_pubmlst: 0
+      download_cgmlst: 1
+      download_enterobase: 0
+    local_file:
+      database: #/home/usr/mlst.db
     build_db:
       options:
         ## kmer size
@@ -36,9 +46,9 @@ genotyping:
     download_cgmlst:
       options:
         ## Kmer size
-        k:
+        k: 31
         ## Species name or scheme ID
-        scheme:
+        scheme: 741110
     download_enterobase:
       options:
         ## Kmer size
@@ -62,7 +72,6 @@ genotyping:
         ## coverage, novel, and multiple alleles. 
         #- output_special
   kwip:
-    kwip_path: 
     khmer_options:
       N: 1
       x: 1e9
@@ -99,8 +108,6 @@ genotyping:
       ## Keep unmapped reads in BAM and write FASTQ.
       #- unmapped
   spotyping:
-    # Path to SpoTyping.py file
-    path: 
     options:
       #swift: on
       #min: 5
@@ -120,18 +127,21 @@ clustering:
   # Output prefix for final consensus clustering and visualization
   output_prefix: tests/integration_tests/test2_data/tb_2_final_clustering
   # Raw genotyping data from which to create distance matrices.
-  # Accepted values are paths to text files containing paths to genotyping files.
+  # Accepted values are paths to text files containing  paths to genotyping files.
   # Currently only compatible with SNPs from snippy, MLSTs from MentaLiST, and CNVs from PRINCE
   genotyping: 
-    MLST: tests/integration_tests/test2_data/tb_2_mentalist_calls.txt
-    CNV:
-    spoligotyping:
+    MLST: #/home/usr/mentalist_calls.txt
+    CNV: #/home/usr/prince_calls.txt
+    spoligotyping: #/home/usr/spotyping_calls.txt
+    SNP: #/home/usr/snippy_calls.txt
+  # Bed file to filter snps before distance matrix generation( applies to both existing or newly generated snp calls).
+  genotyping_options:
+    bed_filter: #/home/usr/filter.bed
   # Paths to pre-constructed distance matrices in tsv format.
   # You can also specify SNP, MLST, spoligotypoing and CNV distance matrices here if you 
   # pre-constructed them, but then they shouldn't appear in the section 'genotyping'.
   distances:
-    SNP: 
-    kWIP: 
+    kWIP: #/home/usr/kwip_dist.tsv
   # The genotyping datatypes that are considered to be the "finest".
   fine_clusterings:
     - SNP
@@ -146,9 +156,9 @@ clustering:
     spoligotyping: 8
   # Use all constraints when performing correlation and consensus clustering
   all_constraints: True
-  # Solver to use for the clustering algorithm; choices are `pulp` or `cplex`
-  solver: pulp
+  # Method to use for the clustering algorithm; choices are `C4` or `ILP`
   method: C4
   presolve: True
+  # Visualize Clusters; choices are `True` or `False`
   visualize: False
 ...

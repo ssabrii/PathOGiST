@@ -296,10 +296,6 @@ def assert_config(config):
                     assert flag in ['output_votes', 'output_special'], "output_votes and output_special are the only values allowed in the flags of call under mentalist"
         # kwip assertions                    
         if key == "kwip" and config['run'][key] == 1:
-            assert config['genotyping'][key]['kwip_path'] != None,\
-                "kWIP Binary location values for kwip_path must exist, if you want to run genotyping with kWIP."
-            assert os.path.isfile(config['genotyping'][key]['kwip_path']),\
-                "kWIP Binary location values for kwip_path must exist."
             if config['genotyping'][key]['kwip_options'] != None:
                 if config['genotyping'][key]['kwip_options']['weights'] != None:
                     assert os.path.isfile(config['genotyping'][key]['kwip_options']['weights']),\
@@ -339,11 +335,6 @@ def assert_config(config):
                             "minfrac values under snippy section must be integer or float and be between 0 and 1"
         # spotyping assertions
         if key == "spotyping" and config['run'][key] == 1:
-            if config['genotyping'][key]['path'] == None:
-                assert config['genotyping'][key]['path'] != None,\
-                    "SpoTyping python file location values for path must exist if you want to run spotyping"
-            assert os.path.isfile(config['genotyping'][key]['path']),\
-                "SpoTyping python file location values for path must exist."
             if config['genotyping'][key]['flags'] != None:
                 for flag in config['genotyping'][key]['flags']:
                     assert flag in ['seq','noQuery','filter','sorted'],\
