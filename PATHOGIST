@@ -140,7 +140,7 @@ def install_mentalist():
         subprocess.call(['tar', '-C', julia_dir, '-xzf', 
             julia_dir+'/julialang-s3.julialang.org/bin/linux/x64/1.1/julia-1.1.0-linux-x86_64.tar.gz'])
         for pkg in ["Distributed", "ArgParse", "BioSequences", "JSON", "DataStructures", "JLD", "GZip",
-                "Blosc", "FileIO", "TextWrap", "LightXML", "JuMP", "Gurobi"]:
+                "Blosc", "FileIO", "TextWrap", "LightXML"]: #"JuMP", "Gurobi"]
             julia_command = julia_dir + '/julia-1.1.0/bin/julia'+' -e \'import Pkg; Pkg.add("%s")\'' % (pkg)
             subprocess.call(julia_command, shell=True)
     #pkg = '[ "Distributed", "ArgParse", "BioSequences", "JSON", "DataStructures", "JLD", "GZip", "Blosc", "FileIO", "TextWrap", "LightXML"]'
