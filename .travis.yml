@@ -2,7 +2,6 @@ notifications:
     email: false
 
 language: python
-install: travis_wait 30 mvn install
 python:
     - "3.5"
 
@@ -10,7 +9,7 @@ before_install:
     - sudo apt-get install coinor-cbc
 
 install:
-    - pip install -r requirements.txt
+    - travis_wait 40 pip install -r requirements.txt
 
 script: 
     - tests/unit_tests/unit_tests.sh
